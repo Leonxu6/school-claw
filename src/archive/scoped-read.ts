@@ -42,6 +42,16 @@ export type FilesReadRequest = {
   maxChars?: number;
 };
 
+export type FilesReadAllRequest = {
+  ssid?: string;
+  studentId?: string;
+  kinds?: FileKind[];
+  dateFrom?: string;
+  dateTo?: string;
+  maxFiles?: number;
+  maxTotalChars?: number;
+};
+
 export type FilesErrorCode =
   | ScopeErrorCode
   | "FORBIDDEN"
@@ -88,6 +98,17 @@ export type FilesReadResult =
   | {
       ok: true;
       documents: ReadDocument[];
+    }
+  | {
+      ok: false;
+      error: FilesError;
+    };
+
+export type FilesReadAllResult =
+  | {
+      ok: true;
+      documents: ReadDocument[];
+      truncated: boolean;
     }
   | {
       ok: false;
@@ -327,6 +348,93 @@ export function filesRead(
   return {
     ok: true,
     documents,
+  };
+}
+
+export function filesReadAll(
+  request: FilesReadAllRequest,
+  options: ScopedReadOptions,
+): FilesReadAllResult {
+  const listRequest: FilesListRequest = {};
+
+  if (request.ssid !== undefined) {
+    listRequest.ssid = request.ssid;
+  }
+
+  if (request.studentId !== undefined) {
+    listRequest.studentId = request.studentId;
+  }
+
+  if (request.dateFrom !== undefined) {
+    listRequest.dateFrom = request.dateFrom;
+  }
+
+  if (request.dateTo !== undefined) {
+    listRequest.dateTo = request.dateTo;
+  }
+
+  const listResult = filesList(listRequest, options);
+
+  if (!listResult.ok) {
+    return listResult;
+  }
+
+  const requestedKinds = new Set(request.kinds ?? []);
+  const maxFiles =
+    request.maxFiles === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, request.maxFiles);
+  const maxTotalChars =
+    request.maxTotalChars === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, request.maxTotalChars);
+  const documents: ReadDocument[] = [];
+  let totalChars = 0;
+  let truncated = false;
+
+  for (const file of listResult.files) {
+    if (requestedKinds.size > 0 && !requestedKinds.has(file.kind as FileKind)) {
+      continue;
+    }
+
+    if (documents.length >= maxFiles) {
+      truncated = true;
+      break;
+    }
+
+    const readRequest: FilesReadRequest = { fileIds: [file.fileId] };
+
+    if (request.ssid !== undefined) {
+      readRequest.ssid = request.ssid;
+    }
+
+    const readResult = filesRead(readRequest, options);
+
+    if (!readResult.ok) {
+      return readResult;
+    }
+
+    const document = readResult.documents[0];
+
+    if (!document) {
+      continue;
+    }
+
+    const nextTotalChars = totalChars + document.content.length;
+
+    if (nextTotalChars > maxTotalChars) {
+      truncated = true;
+      break;
+    }
+
+    documents.push(document);
+    totalChars = nextTotalChars;
+  }
+
+  return {
+    ok: true,
+    documents,
+    truncated,
   };
 }
 
