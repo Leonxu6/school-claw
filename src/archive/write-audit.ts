@@ -18,6 +18,7 @@ import {
   type ScopeGetRequest,
   type SessionScope,
 } from "../scope/scope-get.js";
+import { filesRead } from "./scoped-read.js";
 
 export type FilesAppendTarget =
   | { kind: "parent_observation"; studentId: string; month?: string }
@@ -47,6 +48,26 @@ export type AuditLogRequest = {
   action: string;
   targetFileIds?: string[];
   summary: string;
+};
+
+export type ArtifactType =
+  | "brief"
+  | "practice"
+  | "feedback"
+  | "weekly_summary"
+  | "ppt_outline"
+  | "error_table";
+
+export type ArtifactFormat = "markdown" | "csv" | "ppt_outline";
+
+export type ArtifactCreateRequest = {
+  ssid?: string;
+  artifactType: ArtifactType;
+  title: string;
+  studentId?: string;
+  format: ArtifactFormat;
+  content: string;
+  sourceFileIds?: string[];
 };
 
 export type WriteAuditErrorCode =
@@ -89,6 +110,15 @@ export type FilesWriteResult =
 export type AuditLogResult =
   | {
       ok: true;
+      auditId: string;
+    }
+  | WriteAuditErrorResult;
+
+export type ArtifactCreateResult =
+  | {
+      ok: true;
+      artifactId: string;
+      fileId: string;
       auditId: string;
     }
   | WriteAuditErrorResult;
@@ -278,6 +308,151 @@ export async function filesWrite(
     ok: true,
     fileId: target.fileId,
     written: true,
+    auditId: auditTarget.auditId,
+  };
+}
+
+export async function artifactCreate(
+  request: ArtifactCreateRequest,
+  options: ScopedWriteOptions,
+): Promise<ArtifactCreateResult> {
+  const context = resolveWriteContext(request.ssid, options);
+
+  if (!context.ok) {
+    return context;
+  }
+
+  if (!isArtifactType(request.artifactType)) {
+    return forbidden("artifactType is not supported.");
+  }
+
+  if (!isArtifactFormat(request.format)) {
+    return forbidden("artifact format is not supported.");
+  }
+
+  if (request.title.trim().length === 0) {
+    return forbidden("Artifact title must not be empty.");
+  }
+
+  if (request.content.trim().length === 0) {
+    return forbidden("Artifact content must not be empty.");
+  }
+
+  if (!request.sourceFileIds || request.sourceFileIds.length === 0) {
+    return forbidden("Artifact sourceFileIds are required.");
+  }
+
+  const authorization = authorizeArtifactCreate(request, context.scope);
+
+  if (!authorization.ok) {
+    return authorization;
+  }
+
+  const sourceReadRequest = {
+    fileIds: request.sourceFileIds,
+    ...scopeRequest(request.ssid),
+  };
+  const sourceReadOptions =
+    options.registry === undefined
+      ? { dataRoot: context.dataRoot }
+      : { dataRoot: context.dataRoot, registry: options.registry };
+  const sourceRead = filesRead(sourceReadRequest, sourceReadOptions);
+
+  if (!sourceRead.ok) {
+    return writeErrorFromReadError(sourceRead.error);
+  }
+
+  const sourceAuthorization = authorizeArtifactSourcesForTarget(
+    sourceRead.documents.map((document) => document.fileId),
+    request,
+    context.scope,
+  );
+
+  if (!sourceAuthorization.ok) {
+    return sourceAuthorization;
+  }
+
+  const artifactId = `art_${compactTimestamp(context.now)}_${shortId()}`;
+  const fileId = artifactFileId(request, context.scope, artifactId, context.now);
+  const target = authorizeWriteTarget(fileId, context);
+
+  if (!target.ok) {
+    return target;
+  }
+
+  if (existsSync(target.absolutePath)) {
+    return {
+      ok: false,
+      error: {
+        code: "ALREADY_EXISTS",
+        message: "Artifact file already exists.",
+      },
+    };
+  }
+
+  const auditTarget = prepareAuditTarget(context);
+
+  if (!auditTarget.ok) {
+    return auditTarget;
+  }
+
+  const sourceFileIds = sourceRead.documents.map((document) => document.fileId);
+  const frontmatter: Record<string, unknown> = {
+    type: "artifact",
+    artifact_id: artifactId,
+    artifact_type: request.artifactType,
+    format: request.format,
+    title: request.title.trim(),
+    class_id: context.scope.classId,
+    created_by_ssid_hash: context.scope.ssidHash,
+    created_at: context.now.toISOString(),
+    source_file_ids: sourceFileIds.join(", "),
+  };
+
+  if (request.studentId) {
+    frontmatter.student_id = request.studentId;
+  }
+
+  let artifactWritten = false;
+
+  try {
+    await withFileLock(target.absolutePath, async () => {
+      await atomicWrite(
+        target.absolutePath,
+        renderMarkdown(frontmatter, request.content),
+      );
+      artifactWritten = true;
+    });
+  } catch {
+    return toolError("Artifact file could not be written.");
+  }
+
+  try {
+    await appendAuditEntry(
+      {
+        action: "artifact_create",
+        summary: `create ${request.artifactType} artifact`,
+        targetFileIds: [target.fileId],
+      },
+      context,
+      auditTarget,
+    );
+  } catch {
+    if (artifactWritten) {
+      const rolledBack = await rollbackCreatedArtifact(target.absolutePath);
+
+      if (!rolledBack) {
+        return toolError("Artifact audit failed and rollback failed.");
+      }
+    }
+
+    return toolError("Artifact was not saved because audit logging failed.");
+  }
+
+  return {
+    ok: true,
+    artifactId,
+    fileId: target.fileId,
     auditId: auditTarget.auditId,
   };
 }
@@ -632,6 +807,118 @@ function scopeCanWriteStudent(scope: SessionScope, studentId: string): boolean {
 
 function hasCapability(scope: SessionScope, capability: string): boolean {
   return scope.capabilities.includes(capability);
+}
+
+const artifactTypes: readonly ArtifactType[] = [
+  "brief",
+  "practice",
+  "feedback",
+  "weekly_summary",
+  "ppt_outline",
+  "error_table",
+];
+
+const artifactFormats: readonly ArtifactFormat[] = [
+  "markdown",
+  "csv",
+  "ppt_outline",
+];
+
+function authorizeArtifactCreate(
+  request: ArtifactCreateRequest,
+  scope: SessionScope,
+): WriteAuditErrorResult | { ok: true } {
+  if (request.studentId && !scopeCanWriteStudent(scope, request.studentId)) {
+    return forbidden("Requested student is outside the current scope.");
+  }
+
+  if (scope.role === "parent") {
+    if (!hasCapability(scope, "create_child_artifact")) {
+      return forbidden("Parent scope cannot create child artifacts.");
+    }
+
+    if (!request.studentId) {
+      return forbidden("Parent artifact creation must target the parent's child.");
+    }
+
+    return { ok: true };
+  }
+
+  if (scope.role === "teacher" && hasCapability(scope, "create_class_artifact")) {
+    return { ok: true };
+  }
+
+  return forbidden("Scope cannot create artifacts.");
+}
+
+function authorizeArtifactSourcesForTarget(
+  sourceFileIds: string[],
+  request: ArtifactCreateRequest,
+  scope: SessionScope,
+): WriteAuditErrorResult | { ok: true } {
+  const targetRoots = request.studentId
+    ? [
+        `classes/${scope.classId}/students/${request.studentId}`,
+        `classes/${scope.classId}/public`,
+      ]
+    : [`classes/${scope.classId}`];
+
+  const allSourcesVisibleToTarget = sourceFileIds.every((fileId) => {
+    return isWithinRoots(fileId, targetRoots);
+  });
+
+  if (!allSourcesVisibleToTarget) {
+    return forbidden("Artifact sources must be visible to the artifact target.");
+  }
+
+  return { ok: true };
+}
+
+function artifactFileId(
+  request: ArtifactCreateRequest,
+  scope: SessionScope,
+  artifactId: string,
+  now: Date,
+): string {
+  const suffix = artifactId.slice(artifactId.lastIndexOf("_") + 1);
+  const fileName = `${isoDate(now)}-${request.artifactType}-${suffix}.md`;
+
+  if (request.studentId) {
+    return `classes/${scope.classId}/students/${request.studentId}/artifacts/${fileName}`;
+  }
+
+  return `classes/${scope.classId}/artifacts/${fileName}`;
+}
+
+function isArtifactType(value: unknown): value is ArtifactType {
+  return artifactTypes.includes(value as ArtifactType);
+}
+
+function isArtifactFormat(value: unknown): value is ArtifactFormat {
+  return artifactFormats.includes(value as ArtifactFormat);
+}
+
+function shortId(): string {
+  return randomUUID().replaceAll("-", "").slice(0, 8);
+}
+
+async function rollbackCreatedArtifact(filePath: string): Promise<boolean> {
+  await unlink(filePath).catch(() => undefined);
+
+  return !existsSync(filePath);
+}
+
+function writeErrorFromReadError(error: {
+  code: ScopeErrorCode | "FORBIDDEN" | "NOT_FOUND" | "TOO_LARGE";
+  message: string;
+}): WriteAuditErrorResult {
+  return {
+    ok: false,
+    error: {
+      code: error.code === "TOO_LARGE" ? "TOOL_ERROR" : error.code,
+      message: error.message,
+    },
+  };
 }
 
 function isControlledWriteFile(fileId: string): boolean {
