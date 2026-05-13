@@ -7,9 +7,11 @@
     "test": "vitest run",
     "test:scope": "vitest run tests/scope-get.test.ts",
     "test:scoped-read": "vitest run tests/scoped-read.test.ts",
+    "test:write-audit": "vitest run tests/write-audit.test.ts",
     "typecheck": "tsc --noEmit",
     "demo:scope": "tsx scripts/demo-scope.ts",
-    "demo:scoped-read": "tsx scripts/demo-scoped-read.ts"
+    "demo:scoped-read": "tsx scripts/demo-scoped-read.ts",
+    "demo:write-audit": "tsx scripts/demo-write-audit.ts"
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
