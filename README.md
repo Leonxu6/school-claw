@@ -26,6 +26,12 @@ Run the local scope harness tests:
 pnpm test:scope
 ```
 
+Run the scoped Markdown read tests:
+
+```sh
+pnpm test:scoped-read
+```
+
 Run all tests:
 
 ```sh
@@ -44,4 +50,19 @@ Expected demo loop:
 parent ssid -> {"role":"parent","classId":"class_001","studentIds":["stu_001"],"capabilities":["read_own_child","append_parent_observation","create_child_artifact"],"displayName":"张三家长"}
 teacher ssid -> {"role":"teacher","classId":"class_001","studentIds":["*"],"capabilities":["read_class","write_class","create_class_artifact"],"displayName":"王老师"}
 unknown ssid -> UNBOUND_SESSION
+```
+
+Run the scoped Markdown read demo:
+
+```sh
+pnpm demo:scoped-read
+```
+
+Expected scoped read loop:
+
+```text
+parent A reads student A -> OK (张三学习档案)
+parent A reads student B -> FORBIDDEN
+teacher reads class -> OK (五年级一班)
+fileId "../..." -> FORBIDDEN
 ```
