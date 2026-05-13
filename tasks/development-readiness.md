@@ -4,46 +4,46 @@
 
 - Repo initialized with engineering instructions and domain docs.
 - PRD and technical architecture are archived under `docs/`.
-- Development plan is capability-first, not scenario-first.
+- Development plan is capability-first and closed-loop.
 - Local issue drafts are available under `tasks/issues/`.
-- GitHub publishing is blocked locally because `gh` is not installed.
+- GitHub publishing is available through pushed branches and pull requests.
+- CI exists in `.github/workflows/ci.yml` and runs on pull requests.
 
 ## First Work To Start
 
-Start with `tasks/issues/0001-openclaw-source-baseline.md`.
+Start with `tasks/issues/0001-openclaw-baseline-contract-loop.md`.
 
-That task must establish:
+That issue is acceptable only when it produces a verifiable closed loop:
 
-- Where the OpenClaw source checkout lives.
-- Which upstream commit CLAW v1 is developing against.
-- Which OpenClaw source files and docs define the runtime/session/MCP/plugin contracts.
-- How future tasks should run OpenClaw source tests or contract checks.
-
-No CLAW application code should assume an OpenClaw API until issue 0001 has pinned and documented that contract.
+```text
+OpenClaw source available
+  -> commit pinned
+  -> required runtime/session/MCP/plugin contract files located
+  -> contract verification command passes
+```
 
 ## Development Shape
 
-The implementation track is capability-first:
+The implementation track is now tracer-bullet shaped:
 
-1. OpenClaw source and runtime contract.
-2. school-claw scaffold and test harness.
-3. OpenClaw sessionKey -> CLAW `ssid`.
-4. Markdown learning archive.
-5. `SessionScope` and permission guards.
-6. Safe writes and audit.
-7. CLAW MCP primitives.
-8. Scope Bridge Plugin.
-9. One-agent OpenClaw workspace/config.
-10. Agent prompt contract.
-11. Capability acceptance harness.
-12. Native platform binding.
-13. Pilot operations baseline.
+1. OpenClaw baseline contract loop.
+2. Local CLAW scope harness loop.
+3. Scoped Markdown read loop.
+4. Safe write and audit loop.
+5. Artifact primitive loop.
+6. OpenClaw Scope Bridge loop.
+7. One-agent OpenClaw read loop.
+8. Agent learning-record sedimentation loop.
+9. Teacher class artifact loop.
+10. Native platform binding loop.
+11. Pilot operations and safety loop.
+12. Post-MVP policy loop.
 
-Product scenarios are only acceptance checks for these capabilities.
+Each issue must leave behind a command, smoke test, demo transcript, or decision record that a reviewer can use to accept or reject the work.
 
 ## MVP Gate
 
-The first pilot-ready gate is completion of draft issues 0001 through 0013.
+The first pilot-ready gate is completion of draft issues 0001 through 0011.
 
 Do not implement scenario-specific shortcuts. If a scenario only works because of hard-coded task logic rather than general capabilities, the issue is not done.
 
@@ -51,10 +51,12 @@ Do not implement scenario-specific shortcuts. If a scenario only works because o
 
 Before publishing issues to GitHub:
 
-- Install and authenticate `gh`, or enable a GitHub connector.
 - Create missing labels: `ready-for-agent`, `ready-for-human`, `needs-triage`, `needs-info`, `wontfix`.
 - Publish `tasks/issues/*.md` in dependency order.
 - Replace `DRAFT-*` references with real GitHub issue numbers.
+
+Use `docs/development/codex-worktree-workflow.md` when opening a fresh Codex
+desktop window so the thread is bound to the correct local worktree and branch.
 
 ## Implementation Guardrails
 

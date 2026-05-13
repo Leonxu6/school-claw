@@ -46,7 +46,7 @@ Create the minimal school-claw project scaffold needed for tests and a local sco
 
 ## Completion evidence
 
-Verified in `/Users/leon/school-claw-worktrees/0002-local-claw-scope-harness-loop`:
+Landed on `main` through PR #2. Reviewer can run:
 
 ```text
 pnpm install --frozen-lockfile
@@ -54,9 +54,8 @@ pnpm test
 pnpm typecheck
 pnpm demo:scope
 npm test -- scope
-git diff --check
 ```
 
 ## Blocked by
 
-- `work/0001-openclaw-source-baseline`
+- 0001 OpenClaw baseline contract loop.

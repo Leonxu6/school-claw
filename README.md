@@ -8,6 +8,7 @@ Start with:
 - `docs/product/CLAW_v1_product_prd.md` for product scope.
 - `docs/architecture/CLAW_v1_technical_architecture.md` for the technical baseline.
 - `AGENTS.md` for engineering workflow requirements.
+- `docs/development/codex-worktree-workflow.md` for local Codex/worktree and PR workflow.
 
 ## Development
 

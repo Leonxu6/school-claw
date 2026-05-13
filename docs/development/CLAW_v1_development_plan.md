@@ -1,6 +1,6 @@
 # CLAW v1 Development Plan
 
-Status: rewritten as a capability-first issue plan
+Status: rewritten as closed-loop tracer bullets
 
 Sources:
 
@@ -10,11 +10,22 @@ Sources:
 - OpenClaw upstream source: `https://github.com/openclaw/openclaw`
 - OpenClaw docs: `https://docs.openclaw.ai`
 
-## Correct Planning Model
+## Planning Model
 
-CLAW v1 is not a set of scenario-specific features. It is one OpenClaw-based education agent system.
+CLAW v1 is one OpenClaw-based education agent system, not a collection of hard-coded scenarios.
 
-The system to build is:
+But each issue must still be independently acceptable. The right shape is:
+
+```text
+general capability
+  + a tiny vertical path through the system
+  + a command/demo that proves it works
+  + product scenarios used only as acceptance examples
+```
+
+So these issues are not horizontal component tickets. Each one is a tracer bullet with a closed loop.
+
+## Architecture Target
 
 ```text
 OpenClaw source / Gateway / Pi Runtime
@@ -24,114 +35,86 @@ OpenClaw source / Gateway / Pi Runtime
   + one claw-agent workspace, config, and prompt
 ```
 
-The product scenarios in the PRD are acceptance examples. They should prove the general capabilities work, but they should not become hard-coded task implementations.
+## Closed-Loop Issue Breakdown
 
-## Capability Stack
-
-The reusable capabilities are:
-
-1. OpenClaw source and runtime contract knowledge.
-2. Local development scaffold and test harness.
-3. OpenClaw private-chat session routing and `ssid` mapping.
-4. Markdown student learning archive.
-5. `SessionScope` resolution and permission guards.
-6. Safe Markdown writes and audit logging.
-7. CLAW MCP primitive tools.
-8. Scope Bridge session injection.
-9. `claw-agent` workspace/config/tool policy.
-10. `claw-agent` behavior prompt.
-11. Local OpenClaw capability harness.
-12. Native platform binding and pilot readiness.
-
-## Draft Issue Breakdown
-
-1. **Pin and document the OpenClaw source baseline**
+1. **OpenClaw baseline contract loop**
    - Type: AFK
-   - Blocked by: None
-   - Capability: OpenClaw source checkout, commit pin, runtime contract map.
+   - Closed loop: source checkout -> pinned commit -> contract probe verifies required OpenClaw files/docs/API surfaces.
+   - Blocked by: None.
 
-2. **Create the school-claw development skeleton**
+2. **Local CLAW scope harness loop**
    - Type: AFK
-   - Blocked by: Issue 1
-   - Capability: project structure, TypeScript/test tooling, local commands.
+   - Closed loop: fake OpenClaw `ssid` -> CLAW `scope_get` primitive -> parent/teacher scope JSON.
+   - Blocked by: Issue 1.
 
-3. **Verify OpenClaw sessionKey to CLAW ssid contract**
+3. **Scoped Markdown read loop**
    - Type: AFK
-   - Blocked by: Issues 1 and 2
-   - Capability: session isolation and stable `ssid` mapping.
+   - Closed loop: `ssid` -> `SessionScope` -> Markdown file guard -> `files_list/read` -> allowed docs or `FORBIDDEN`.
+   - Blocked by: Issue 2.
 
-4. **Build Markdown learning archive fixtures and schema helpers**
+4. **Safe write and audit loop**
    - Type: AFK
-   - Blocked by: Issue 2
-   - Capability: class/student/archive data model.
+   - Closed loop: scoped append/write -> atomic Markdown update -> audit record -> read-back verification.
+   - Blocked by: Issue 3.
 
-5. **Build SessionScope resolver and file permission core**
+5. **Artifact primitive loop**
    - Type: AFK
-   - Blocked by: Issues 3 and 4
-   - Capability: role/status/capability resolution and file guard.
+   - Closed loop: scoped source reads -> `artifact_create` -> saved artifact -> audit -> read-back verification.
+   - Blocked by: Issue 4.
 
-6. **Build safe Markdown write and audit core**
+6. **OpenClaw Scope Bridge loop**
    - Type: AFK
-   - Blocked by: Issues 4 and 5
-   - Capability: append/write safety, locks, atomic writes, audit trail.
+   - Closed loop: simulated OpenClaw tool call with forged `ssid` -> plugin injects real session -> CLAW MCP denies/permits correctly.
+   - Blocked by: Issues 1 and 5.
 
-7. **Expose CLAW MCP primitive tools**
+7. **One-agent OpenClaw read loop**
    - Type: AFK
-   - Blocked by: Issues 5 and 6
-   - Capability: `scope_get`, file primitives, artifact creation, audit primitive.
+   - Closed loop: OpenClaw local/QA message -> one `claw-agent` -> Scope Bridge -> CLAW MCP read -> evidence-based reply.
+   - Blocked by: Issues 5 and 6.
 
-8. **Implement the OpenClaw Scope Bridge Plugin**
+8. **Agent learning-record sedimentation loop**
    - Type: AFK
-   - Blocked by: Issues 1, 3, and 7
-   - Capability: inject real OpenClaw session into CLAW MCP calls.
+   - Closed loop: natural-language learning fact -> one `claw-agent` decides to append -> audit -> later answer cites the new record.
+   - Blocked by: Issue 7.
 
-9. **Create the one-agent OpenClaw workspace and tool policy**
+9. **Teacher class artifact loop**
    - Type: AFK
-   - Blocked by: Issues 1, 7, and 8
-   - Capability: one `claw-agent`, `bundle-mcp` only, native tool denial.
+   - Closed loop: teacher scope -> class-visible reads -> generated class artifact -> audit -> parent scope refused for same request.
+   - Blocked by: Issue 8.
 
-10. **Write the claw-agent capability prompt contract**
-    - Type: AFK
-    - Blocked by: Issues 7 and 9
-    - Capability: general behavior rules for reading, writing, generating, and refusing.
-
-11. **Run the local OpenClaw capability harness**
-    - Type: AFK
-    - Blocked by: Issues 7, 8, 9, and 10
-    - Capability: prove reusable abilities through scenario acceptance tests.
-
-12. **Validate native platform binding and authorization path**
+10. **Native platform binding loop**
     - Type: HITL
-    - Blocked by: Issues 1, 3, 8, 9, and 11
-    - Capability: real private-chat entry, peer binding, invite/authorization flow.
+    - Closed loop: real private chat -> OpenClaw sessionKey -> CLAW binding/authorization -> scoped CLAW reply.
+    - Blocked by: Issues 6 and 7.
 
-13. **Prepare pilot operations and security baseline**
+11. **Pilot operations and safety loop**
     - Type: AFK
-    - Blocked by: Issues 11 and 12
-    - Capability: deployment checklist, logs, audit review, config safety, runbook.
+    - Closed loop: start/restart system -> run smoke suite -> inspect logs/audit -> backup/restore learning archive.
+    - Blocked by: Issues 9 and 10.
 
-14. **Decide post-MVP batch-send and schedule policy**
+12. **Post-MVP batch-send and schedule policy loop**
     - Type: HITL
-    - Blocked by: Issue 13
-    - Capability: product/architecture decisions for batch parent messages and recurring tasks.
+    - Closed loop: decision ADRs -> follow-up implementation tickets or explicit defer decision.
+    - Blocked by: Issue 11.
 
 ## MVP Gate
 
-The first pilot-ready MVP is complete when issues 1 through 13 are done.
+The pilot-ready MVP is issues 1 through 11.
 
-At that point, the product scenarios should work because the capabilities exist:
+At the MVP gate, a reviewer must be able to run or observe:
 
-- Parent can ask about their own child.
-- Parent can add learning observations.
-- Parent can request practice or advice based on the child archive.
-- Teacher can record a student observation.
-- Teacher can query class-level learning state.
-- Teacher can generate reusable artifacts.
-- Parent attempts to access another child or class data are refused.
+- OpenClaw baseline contract verification.
+- Parent scope read succeeds only for own child.
+- Parent forbidden access fails at MCP/data layer.
+- Parent/teacher learning records append with audit.
+- Artifact creation works from scoped evidence.
+- Scope Bridge overwrites forged `ssid`.
+- One `claw-agent` can read and write through CLAW MCP.
+- Teacher can create class-level artifacts while parent cannot.
+- Native platform private chat can bind to a CLAW scope.
+- Restart, logs, audit review, and backup/restore are documented and smoke-tested.
 
-These are acceptance tests, not separate implementation tracks.
-
-## Fresh-Window Dispatch Rule
+## Dispatch Rule
 
 When dispatching work to another window, pass exactly one numbered issue file from `tasks/issues/` and tell the agent:
 
@@ -139,13 +122,16 @@ When dispatching work to another window, pass exactly one numbered issue file fr
 Work in /Users/leon/school-claw. Read this issue file first and follow its Fresh-agent brief. Do not rely on prior chat context. Follow AGENTS.md, start with tests for AFK issues, and stop if blocked by a referenced draft issue that is not complete.
 ```
 
-Each issue must remain self-contained: working directory, required docs, project summary, capability, non-negotiables, expected handoff result, acceptance criteria, and blockers belong in the issue body.
+Each issue must remain self-contained and must include a closed-loop acceptance target.
 
 ## Publishing Notes
 
-The configured issue tracker is GitHub Issues, but this machine currently has no `gh` command. Before publishing:
+The configured issue tracker is GitHub Issues. These markdown files remain the
+source drafts until they are published to the tracker.
 
-1. Install and authenticate GitHub CLI, or enable a GitHub connector.
-2. Create missing labels if needed: `ready-for-agent`, `ready-for-human`, `needs-triage`, `needs-info`, `wontfix`.
-3. Publish issues in dependency order.
-4. Replace draft dependency references like `DRAFT-0001` with real GitHub issue numbers.
+Before publishing:
+
+1. Create missing labels if needed: `ready-for-agent`, `ready-for-human`, `needs-triage`, `needs-info`, `wontfix`.
+2. Publish issues in dependency order.
+3. Replace draft dependency references like `DRAFT-0003` with real GitHub issue numbers.
+4. Keep `docs/development/codex-worktree-workflow.md` current when the branch or worktree process changes.
