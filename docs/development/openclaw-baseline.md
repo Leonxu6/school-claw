@@ -293,7 +293,7 @@ CLAW implication:
 
 ## Next-Issue Read Order
 
-For issue `0002-school-claw-dev-skeleton.md`, read:
+For issue `0002-local-claw-scope-harness-loop.md`, read:
 
 1. This file.
 2. `AGENTS.md`.
