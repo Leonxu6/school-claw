@@ -22,12 +22,13 @@ Write the result into a durable repo document such as `docs/development/openclaw
 
 ## Acceptance criteria
 
-- [ ] Official OpenClaw source is available locally or an existing local checkout is identified.
-- [ ] The exact upstream URL and commit hash are recorded.
-- [ ] The baseline document maps the relevant OpenClaw contracts: session routing, `session.dmScope`, `sessionKey`, Pi Runtime, bundle MCP materialization, MCP tool naming, plugin hooks, tool profile/deny config, and native tool security.
-- [ ] The document names the OpenClaw source files and docs that future tasks should read before touching those integration points.
-- [ ] The document includes commands to install dependencies and run the smallest useful OpenClaw tests or checks.
-- [ ] If any architecture document assumption is stale, the discrepancy is explicitly recorded rather than silently papered over.
+- [x] Official OpenClaw source is available locally or an existing local checkout is identified.
+- [x] The exact upstream URL and commit hash are recorded.
+- [x] The baseline document maps the relevant OpenClaw contracts: session routing, `session.dmScope`, `sessionKey`, Pi Runtime, bundle MCP materialization, MCP tool naming, plugin hooks, tool profile/deny config, and native tool security.
+- [x] The document names the OpenClaw source files and docs that future tasks should read before touching those integration points.
+- [x] The document includes commands to install dependencies and run the smallest useful OpenClaw tests or checks.
+- [x] A closed-loop verification command exists and fails if required OpenClaw source/docs paths are missing.
+- [x] If any architecture document assumption is stale, the discrepancy is explicitly recorded rather than silently papered over.
 
 ## Blocked by
 

@@ -25,7 +25,7 @@ If an implementation makes "parent asks today" or "teacher generates weak points
 Publish or dispatch in this order unless you intentionally run HITL platform/policy work in parallel:
 
 1. `0001-openclaw-source-baseline.md`
-2. `0002-school-claw-dev-skeleton.md`
+2. `0002-local-claw-scope-harness-loop.md`
 3. `0003-openclaw-session-ssid-contract.md`
 4. `0004-markdown-learning-archive-core.md`
 5. `0005-session-scope-permission-core.md`
