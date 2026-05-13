@@ -27,7 +27,7 @@ Publish or dispatch in this order unless you intentionally run HITL platform/pol
 1. `0001-openclaw-source-baseline.md`
 2. `0002-local-claw-scope-harness-loop.md`
 3. `0003-openclaw-session-ssid-contract.md`
-4. `0004-markdown-learning-archive-core.md`
+4. `0004-safe-write-audit-loop.md`
 5. `0005-session-scope-permission-core.md`
 6. `0006-safe-write-audit-core.md`
 7. `0007-claw-mcp-primitives.md`
