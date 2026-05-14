@@ -17,11 +17,17 @@ import {
   type FilesReadAllRequest,
   type FilesReadRequest,
 } from "../archive/scoped-read.js";
+import {
+  filesAppend,
+  type FilesAppendRequest,
+  type FilesAppendTarget,
+} from "../archive/write-audit.js";
 import { scopeGet, type ScopeGetRequest } from "../scope/scope-get.js";
 
 type ClawMcpServerOptions = {
   dataRoot: string;
   tracePath?: string | undefined;
+  now?: () => Date;
 };
 
 type ToolResultPayload = Record<string, unknown>;
@@ -155,13 +161,59 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
           required: ["ssid"],
         },
       },
+      {
+        name: "files_append",
+        description: "Append a durable learning observation through CLAW scoped write/audit rules.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ssid: {
+              type: "string",
+            },
+            target: {
+              type: "object",
+              properties: {
+                kind: {
+                  type: "string",
+                  enum: [
+                    "parent_observation",
+                    "teacher_observation",
+                    "timeline",
+                    "class_note",
+                  ],
+                },
+                studentId: {
+                  type: "string",
+                },
+                month: {
+                  type: "string",
+                },
+                date: {
+                  type: "string",
+                },
+              },
+              required: ["kind"],
+            },
+            frontmatter: {
+              type: "object",
+            },
+            content: {
+              type: "string",
+            },
+            reason: {
+              type: "string",
+            },
+          },
+          required: ["ssid", "target", "content", "reason"],
+        },
+      },
     ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const toolName = request.params.name;
     const toolArguments = toolParams(request.params.arguments);
-    const result = callClawTool(toolName, toolArguments, options);
+    const result = await callClawTool(toolName, toolArguments, options);
 
     traceToolCall({
       tracePath: options.tracePath,
@@ -181,11 +233,11 @@ export async function connectClawMcpServerToStdio(server: Server): Promise<void>
   await server.connect(transport);
 }
 
-function callClawTool(
+async function callClawTool(
   toolName: string,
   toolArguments: Record<string, unknown>,
   options: ClawMcpServerOptions,
-): ToolResultPayload {
+): Promise<ToolResultPayload> {
   switch (toolName) {
     case "scope_get":
       return scopeGet(scopeGetRequest(toolArguments)) as unknown as ToolResultPayload;
@@ -201,6 +253,11 @@ function callClawTool(
       return filesList(filesListRequest(toolArguments), {
         dataRoot: options.dataRoot,
       }) as unknown as ToolResultPayload;
+    case "files_append":
+      return (await filesAppend(filesAppendRequest(toolArguments), {
+        dataRoot: options.dataRoot,
+        ...(options.now ? { now: options.now } : {}),
+      })) as unknown as ToolResultPayload;
     default:
       return {
         ok: false,
@@ -273,6 +330,26 @@ function filesListRequest(toolArguments: Record<string, unknown>): FilesListRequ
   return request;
 }
 
+function filesAppendRequest(toolArguments: Record<string, unknown>): FilesAppendRequest {
+  const request: FilesAppendRequest = {
+    target: filesAppendTarget(toolArguments.target),
+    content: optionalString(toolArguments.content) ?? "",
+    reason: optionalString(toolArguments.reason) ?? "",
+  };
+  const ssid = optionalString(toolArguments.ssid);
+  const frontmatter = optionalRecord(toolArguments.frontmatter);
+
+  if (ssid !== undefined) {
+    request.ssid = ssid;
+  }
+
+  if (frontmatter !== undefined) {
+    request.frontmatter = frontmatter;
+  }
+
+  return request;
+}
+
 function textJsonResult(payload: ToolResultPayload) {
   return {
     content: [
@@ -301,6 +378,12 @@ function optionalNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function optionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
 function stringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
@@ -320,6 +403,41 @@ function optionalFileKind(value: unknown): FileKind | undefined {
   return typeof value === "string" && fileKindValues.includes(value as FileKind)
     ? (value as FileKind)
     : undefined;
+}
+
+function filesAppendTarget(value: unknown): FilesAppendTarget {
+  const target = optionalRecord(value) ?? {};
+  const kind = optionalString(target.kind);
+  const studentId = optionalString(target.studentId);
+  const month = optionalString(target.month);
+  const date = optionalString(target.date);
+
+  if (kind === "class_note") {
+    return date === undefined ? { kind } : { kind, date };
+  }
+
+  if (
+    kind === "parent_observation" ||
+    kind === "teacher_observation" ||
+    kind === "timeline"
+  ) {
+    const safeStudentId = studentId ?? "";
+
+    if (kind === "timeline") {
+      return date === undefined
+        ? { kind, studentId: safeStudentId }
+        : { kind, studentId: safeStudentId, date };
+    }
+
+    return month === undefined
+      ? { kind, studentId: safeStudentId }
+      : { kind, studentId: safeStudentId, month };
+  }
+
+  return {
+    kind: "timeline",
+    studentId: "",
+  };
 }
 
 function assignOptional<T extends object, K extends keyof T>(
@@ -356,6 +474,7 @@ function traceToolCall(params: {
 
 async function main(): Promise<void> {
   const dataRoot = process.env.CLAW_DATA_DIR;
+  const nowIso = process.env.CLAW_NOW;
 
   if (!dataRoot) {
     throw new Error("CLAW_DATA_DIR is required to start the CLAW MCP server.");
@@ -365,6 +484,7 @@ async function main(): Promise<void> {
     createClawMcpServer({
       dataRoot,
       tracePath: process.env.CLAW_MCP_TRACE_PATH,
+      ...(nowIso ? { now: () => new Date(nowIso) } : {}),
     }),
   );
 }

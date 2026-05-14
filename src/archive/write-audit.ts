@@ -169,6 +169,10 @@ export async function filesAppend(
   request: FilesAppendRequest,
   options: ScopedWriteOptions,
 ): Promise<FilesAppendResult> {
+  if (!isFilesAppendTarget(request.target)) {
+    return forbidden("files_append target is not supported.");
+  }
+
   const context = resolveWriteContext(request.ssid, options);
 
   if (!context.ok) {
@@ -208,7 +212,10 @@ export async function filesAppend(
     const existing = targetExists ? await readFile(target.absolutePath, "utf8") : "";
     const next = targetExists
       ? appendMarkdown(existing, request.content)
-      : renderMarkdown(request.frontmatter, request.content);
+      : renderMarkdown(
+          appendFrontmatter(request.frontmatter, request.target, context),
+          request.content,
+        );
 
     await atomicWrite(target.absolutePath, next);
   });
@@ -543,6 +550,89 @@ function fileIdForAppendTarget(
         `classes/${scope.classId}/class-notes/${target.date ?? currentDate}.md`,
         "",
       );
+  }
+}
+
+function isFilesAppendTarget(value: unknown): value is FilesAppendTarget {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const target = value as Record<string, unknown>;
+  const kind = target.kind;
+  const studentId = target.studentId;
+  const month = target.month;
+  const date = target.date;
+
+  if (month !== undefined && typeof month !== "string") {
+    return false;
+  }
+
+  if (date !== undefined && typeof date !== "string") {
+    return false;
+  }
+
+  if (kind === "class_note") {
+    return studentId === undefined;
+  }
+
+  if (
+    kind === "parent_observation" ||
+    kind === "teacher_observation" ||
+    kind === "timeline"
+  ) {
+    return typeof studentId === "string" && studentId.length > 0;
+  }
+
+  return false;
+}
+
+function appendFrontmatter(
+  frontmatter: Record<string, unknown> | undefined,
+  target: FilesAppendTarget,
+  context: { scope: SessionScope; now: Date },
+): Record<string, unknown> {
+  return {
+    type: defaultAppendType(target),
+    title: defaultAppendTitle(target, context),
+    ...(frontmatter ?? {}),
+    source_role: context.scope.role,
+    source_ssid_hash: context.scope.ssidHash,
+    class_id: context.scope.classId,
+    ...("studentId" in target ? { student_id: target.studentId } : {}),
+    recorded_at: context.now.toISOString(),
+    updated_at: context.now.toISOString(),
+  };
+}
+
+function defaultAppendType(target: FilesAppendTarget): string {
+  switch (target.kind) {
+    case "parent_observation":
+      return "parent_observation";
+    case "teacher_observation":
+      return "teacher_observation";
+    case "timeline":
+      return "learning_event";
+    case "class_note":
+      return "class_note";
+  }
+}
+
+function defaultAppendTitle(
+  target: FilesAppendTarget,
+  context: { scope: SessionScope; now: Date },
+): string {
+  const period = "month" in target && target.month ? target.month : isoMonth(context.now);
+
+  switch (target.kind) {
+    case "parent_observation":
+      return `${target.studentId} ${period} 家长观察`;
+    case "teacher_observation":
+      return `${target.studentId} ${period} 老师观察`;
+    case "timeline":
+      return `${target.studentId} ${"date" in target && target.date ? target.date : isoDate(context.now)} 学习事件`;
+    case "class_note":
+      return `${context.scope.classId} ${"date" in target && target.date ? target.date : isoDate(context.now)} 班级记录`;
   }
 }
 
