@@ -1,0 +1,91 @@
+{
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "minimax/MiniMax-M2.7",
+        "fallbacks": []
+      },
+      "models": {
+        "minimax/MiniMax-M2.7": {
+          "agentRuntime": {
+            "id": "pi"
+          }
+        }
+      },
+      "maxConcurrent": 4,
+      "timeoutSeconds": 600
+    },
+    "list": [
+      {
+        "id": "claw-agent",
+        "default": true,
+        "name": "CLAW Agent",
+        "workspace": "workspaces/claw-agent",
+        "systemPromptOverride": "prompts/claw-agent.md",
+        "tools": {
+          "profile": "messaging",
+          "allow": [
+            "bundle-mcp",
+            "message",
+            "session_status"
+          ],
+          "deny": [
+            "group:fs",
+            "group:runtime",
+            "group:ui",
+            "group:automation",
+            "group:agents",
+            "read",
+            "write",
+            "edit",
+            "apply_patch",
+            "exec",
+            "process",
+            "browser",
+            "gateway",
+            "cron",
+            "nodes",
+            "canvas",
+            "sessions_spawn",
+            "sessions_yield",
+            "subagents",
+            "session_spawn",
+            "agent_send",
+            "llm_task"
+          ]
+        }
+      }
+    ]
+  },
+  "plugins": {
+    "load": {
+      "paths": [
+        "integrations/openclaw/plugins/claw-scope-bridge"
+      ]
+    },
+    "entries": {
+      "claw-scope-bridge": {
+        "enabled": true
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "claw": {
+        "command": "node",
+        "args": [
+          "--import",
+          "./node_modules/tsx/dist/esm/index.mjs",
+          "src/mcp/server.ts"
+        ],
+        "cwd": ".",
+        "env": {
+          "CLAW_DATA_DIR": "claw-data"
+        }
+      }
+    }
+  }
+}

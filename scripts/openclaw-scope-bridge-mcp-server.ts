@@ -17,6 +17,13 @@ import {
 
 const MCP_SERVER_NAME = "school-claw-scope-bridge-mcp";
 const MCP_SERVER_VERSION = "0.0.0";
+const TSX_ESM_LOADER_PATH = path.join(
+  "node_modules",
+  "tsx",
+  "dist",
+  "esm",
+  "index.mjs",
+);
 const fileKindValues = [
   "profile",
   "knowledge",
@@ -180,8 +187,7 @@ const toolDefinitions = [
 async function createScopeBridgeMcpServer(
   options: ScopeBridgeMcpServerOptions,
 ): Promise<Server> {
-  const rawServerCommand = packageManagerExecCommand([
-    "tsx",
+  const rawServerCommand = nodeWithTsxLoaderCommand(options.repoRoot, [
     path.join(options.repoRoot, "src", "mcp", "server.ts"),
   ]);
   const rawClient = await connectClawMcpClient({
@@ -280,22 +286,13 @@ function compactEnv(env: Record<string, string | undefined>): Record<string, str
   );
 }
 
-function packageManagerExecCommand(args: string[]): {
+function nodeWithTsxLoaderCommand(repoRoot: string, args: string[]): {
   command: string;
   args: string[];
 } {
-  const npmExecPath = process.env.npm_execpath;
-
-  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
-    return {
-      command: process.execPath,
-      args: [npmExecPath, ...args],
-    };
-  }
-
   return {
-    command: "pnpm",
-    args,
+    command: process.execPath,
+    args: ["--import", path.join(repoRoot, TSX_ESM_LOADER_PATH), ...args],
   };
 }
 

@@ -19,6 +19,7 @@ import {
   runForgedSsidSedimentationProbe,
   runSedimentationDemo,
 } from "../src/openclaw/sedimentation-loop.js";
+import { canBindLoopback } from "./openclaw-e2e-availability.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const fixtureRoot = fileURLToPath(
@@ -26,9 +27,10 @@ const fixtureRoot = fileURLToPath(
 );
 const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const teacherSsid = "agent:claw-agent:feishu:direct:teacher-openid-001";
-const piRuntimeIt = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot })
-  ? it
-  : it.skip;
+const piRuntimeIt =
+  isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot }) && canBindLoopback()
+    ? it
+    : it.skip;
 
 function createScratchArchive(): { scratchRoot: string; dataRoot: string } {
   const scratchRoot = path.join(tmpdir(), `school-claw-sedimentation-${crypto.randomUUID()}`);

@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   CLAW_AGENT_ID,
+  TSX_ESM_LOADER_PATH,
   createClawAgentOpenClawConfig,
 } from "../src/openclaw/claw-agent-config.js";
 import type {
@@ -211,8 +212,7 @@ function createOpenClawRuntimeConfig(params: {
   sessionKey: string;
   nowIso?: string;
 }): Record<string, unknown> {
-  const scopeBridgeCommand = packageManagerExecCommand([
-    "tsx",
+  const scopeBridgeCommand = nodeWithTsxLoaderCommand(params.repoRoot, [
     path.join(params.repoRoot, "scripts", "openclaw-scope-bridge-mcp-server.ts"),
   ]);
   const scopeBridgeServer = {
@@ -270,22 +270,13 @@ function createOpenClawRuntimeConfig(params: {
   };
 }
 
-function packageManagerExecCommand(args: string[]): {
+function nodeWithTsxLoaderCommand(repoRoot: string, args: string[]): {
   command: string;
   args: string[];
 } {
-  const npmExecPath = process.env.npm_execpath;
-
-  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
-    return {
-      command: process.execPath,
-      args: [npmExecPath, ...args],
-    };
-  }
-
   return {
-    command: "pnpm",
-    args,
+    command: process.execPath,
+    args: ["--import", path.join(repoRoot, TSX_ESM_LOADER_PATH), ...args],
   };
 }
 

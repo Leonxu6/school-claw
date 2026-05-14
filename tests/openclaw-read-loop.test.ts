@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { connectClawMcpClient } from "../src/mcp/client.js";
-import { createClawAgentOpenClawConfig } from "../src/openclaw/claw-agent-config.js";
+import {
+  TSX_ESM_LOADER_PATH,
+  createClawAgentOpenClawConfig,
+} from "../src/openclaw/claw-agent-config.js";
 import {
   resolveQaChannelHelperInvocation,
   runOpenClawQaChannelReadLoopDemo,
@@ -15,6 +18,7 @@ import {
   runClawAgentReadTurn,
   runOneAgentOpenClawReadLoopDemo,
 } from "../src/openclaw/read-loop.js";
+import { canBindLoopback } from "./openclaw-e2e-availability.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const dataRoot = fileURLToPath(
@@ -24,7 +28,9 @@ const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const parentBSsid = "agent:claw-agent:qqbot:direct:parent-openid-002";
 const disabledParentSsid =
   "agent:claw-agent:qqbot:direct:disabled-parent-openid-001";
+const loopbackBindAvailable = canBindLoopback();
 const openclawQaChannelAvailable =
+  loopbackBindAvailable &&
   existsSync("/Users/leon/openclaw/extensions/qa-channel/src/inbound.ts") &&
   existsSync("/Users/leon/openclaw/extensions/qa-channel/api.ts") &&
   existsSync("/Users/leon/openclaw/extensions/qa-lab/bus-api.ts") &&
@@ -69,10 +75,11 @@ describe("one-agent OpenClaw read loop", () => {
     expect(path.relative(agent?.workspace ?? "", dataRoot).startsWith("..")).toBe(
       true,
     );
-    expect(config.mcp.servers.claw.command).toBe("pnpm");
+    expect(config.mcp.servers.claw.command).toBe("node");
     expect(config.mcp.servers.claw.cwd).toBe(path.resolve(repoRoot));
     expect(config.mcp.servers.claw.args).toEqual([
-      "tsx",
+      "--import",
+      path.join(repoRoot, TSX_ESM_LOADER_PATH),
       path.join(repoRoot, "src", "mcp", "server.ts"),
     ]);
     expect(existsSync(path.join(repoRoot, "src", "mcp", "server.ts"))).toBe(true);
@@ -249,7 +256,7 @@ describe("one-agent OpenClaw read loop", () => {
     30_000,
   );
 
-  it("does not require pnpm to be discoverable on PATH when pnpm launched the test", () => {
+  it("does not require pnpm or the tsx CLI to be discoverable on PATH", () => {
     const invocation = resolveQaChannelHelperInvocation({
       repoRoot: "/repo",
       openclawCheckoutPath: "/openclaw",
@@ -261,11 +268,8 @@ describe("one-agent OpenClaw read loop", () => {
     expect(invocation).toEqual({
       command: "node",
       args: [
-        "/opt/pnpm/bin/pnpm.cjs",
-        "--dir",
-        "/openclaw",
-        "exec",
-        "tsx",
+        "--import",
+        path.join("/openclaw", TSX_ESM_LOADER_PATH),
         path.join("/repo", "scripts", "openclaw-qa-turn.ts"),
       ],
     });
@@ -283,17 +287,14 @@ describe("one-agent OpenClaw read loop", () => {
     expect(invocation).toEqual({
       command: "node",
       args: [
-        "/opt/pnpm/bin/pnpm.cjs",
-        "--dir",
-        "/openclaw",
-        "exec",
-        "tsx",
+        "--import",
+        path.join("/openclaw", TSX_ESM_LOADER_PATH),
         path.join("/repo", "scripts", "openclaw-qa-turn.ts"),
       ],
     });
   });
 
-  it("falls back to the pnpm command for non-pnpm launchers", () => {
+  it("uses node with the pinned OpenClaw tsx loader for non-pnpm launchers", () => {
     const invocation = resolveQaChannelHelperInvocation({
       repoRoot: "/repo",
       openclawCheckoutPath: "/openclaw",
@@ -303,12 +304,10 @@ describe("one-agent OpenClaw read loop", () => {
     });
 
     expect(invocation).toEqual({
-      command: "pnpm",
+      command: "node",
       args: [
-        "--dir",
-        "/openclaw",
-        "exec",
-        "tsx",
+        "--import",
+        path.join("/openclaw", TSX_ESM_LOADER_PATH),
         path.join("/repo", "scripts", "openclaw-qa-turn.ts"),
       ],
     });

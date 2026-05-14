@@ -1,6 +1,14 @@
 import path from "node:path";
 
 export const CLAW_AGENT_ID = "claw-agent";
+export const CLAW_SCOPE_BRIDGE_PLUGIN_ID = "claw-scope-bridge";
+export const TSX_ESM_LOADER_PATH = path.join(
+  "node_modules",
+  "tsx",
+  "dist",
+  "esm",
+  "index.mjs",
+);
 export const PINNED_OPENCLAW_CHECKOUT_PATH = "/Users/leon/openclaw";
 export const PINNED_OPENCLAW_COMMIT = "da23f4572da7d59ef97688ad8b61771e5b708733";
 
@@ -18,6 +26,14 @@ export type ClawAgentOpenClawConfig = {
         primary: string;
         fallbacks: string[];
       };
+      models: Record<
+        string,
+        {
+          agentRuntime: {
+            id: "pi";
+          };
+        }
+      >;
       maxConcurrent: number;
       timeoutSeconds: number;
     };
@@ -37,10 +53,9 @@ export type ClawAgentOpenClawConfig = {
     ];
   };
   mcp: {
-    sessionIdleTtlMs: number;
     servers: {
       claw: {
-        command: "pnpm";
+        command: "node";
         args: string[];
         cwd: string;
         env: {
@@ -49,7 +64,23 @@ export type ClawAgentOpenClawConfig = {
       };
     };
   };
+  plugins: {
+    load: {
+      paths: string[];
+    };
+    entries: Record<
+      typeof CLAW_SCOPE_BRIDGE_PLUGIN_ID,
+      {
+        enabled: true;
+      }
+    >;
+  };
 };
+
+export type LoadableClawAgentOpenClawConfig = Omit<
+  ClawAgentOpenClawConfig,
+  "openclawRuntime"
+>;
 
 export type ClawAgentOpenClawConfigOptions = {
   repoRoot: string;
@@ -57,9 +88,15 @@ export type ClawAgentOpenClawConfigOptions = {
   openclawCheckoutPath?: string;
   pinnedOpenClawCommit?: string;
   clawMcpServerEntry?: string;
+  pathMode?: "absolute" | "repo-relative";
 };
 
 const NATIVE_DATA_TOOL_DENYLIST = [
+  "group:fs",
+  "group:runtime",
+  "group:ui",
+  "group:automation",
+  "group:agents",
   "read",
   "write",
   "edit",
@@ -71,16 +108,58 @@ const NATIVE_DATA_TOOL_DENYLIST = [
   "cron",
   "nodes",
   "canvas",
+  "sessions_spawn",
+  "sessions_yield",
+  "subagents",
   "session_spawn",
   "agent_send",
   "llm_task",
 ];
+
+function toConfigPath(
+  repoRoot: string,
+  targetPath: string,
+  pathMode: "absolute" | "repo-relative",
+) {
+  if (pathMode === "absolute") {
+    return targetPath;
+  }
+
+  const relativePath = path.relative(repoRoot, targetPath);
+
+  if (!relativePath) {
+    return ".";
+  }
+
+  if (!relativePath.startsWith("..") && !path.isAbsolute(relativePath)) {
+    return relativePath;
+  }
+
+  return targetPath;
+}
+
+function toNodeImportSpecifier(
+  repoRoot: string,
+  targetPath: string,
+  pathMode: "absolute" | "repo-relative",
+) {
+  const configPath = toConfigPath(repoRoot, targetPath, pathMode);
+
+  if (pathMode === "repo-relative" && !path.isAbsolute(configPath) && configPath !== ".") {
+    return configPath.startsWith(".") ? configPath : `./${configPath}`;
+  }
+
+  return configPath;
+}
 
 export function createClawAgentOpenClawConfig(
   options: ClawAgentOpenClawConfigOptions,
 ): ClawAgentOpenClawConfig {
   const repoRoot = path.resolve(options.repoRoot);
   const dataRoot = path.resolve(options.dataRoot);
+  const pathMode = options.pathMode ?? "absolute";
+  const fromRepoRoot = (...segments: string[]) =>
+    toConfigPath(repoRoot, path.join(repoRoot, ...segments), pathMode);
 
   return {
     openclawRuntime: {
@@ -94,7 +173,14 @@ export function createClawAgentOpenClawConfig(
       defaults: {
         model: {
           primary: "minimax/MiniMax-M2.7",
-          fallbacks: ["openai/gpt-5.5"],
+          fallbacks: [],
+        },
+        models: {
+          "minimax/MiniMax-M2.7": {
+            agentRuntime: {
+              id: "pi",
+            },
+          },
         },
         maxConcurrent: 4,
         timeoutSeconds: 600,
@@ -104,8 +190,8 @@ export function createClawAgentOpenClawConfig(
           id: CLAW_AGENT_ID,
           default: true,
           name: "CLAW Agent",
-          workspace: path.join(repoRoot, "workspaces", CLAW_AGENT_ID),
-          systemPromptOverride: path.join(repoRoot, "prompts", "claw-agent.md"),
+          workspace: fromRepoRoot("workspaces", CLAW_AGENT_ID),
+          systemPromptOverride: fromRepoRoot("prompts", "claw-agent.md"),
           tools: {
             profile: "messaging",
             allow: ["bundle-mcp", "message", "session_status"],
@@ -114,21 +200,57 @@ export function createClawAgentOpenClawConfig(
         },
       ],
     },
+    plugins: {
+      load: {
+        paths: [
+          fromRepoRoot(
+            "integrations",
+            "openclaw",
+            "plugins",
+            CLAW_SCOPE_BRIDGE_PLUGIN_ID,
+          ),
+        ],
+      },
+      entries: {
+        [CLAW_SCOPE_BRIDGE_PLUGIN_ID]: {
+          enabled: true,
+        },
+      },
+    },
     mcp: {
-      sessionIdleTtlMs: 600_000,
       servers: {
         claw: {
-          command: "pnpm",
+          command: "node",
           args: [
-            "tsx",
-            options.clawMcpServerEntry ?? path.join(repoRoot, "src", "mcp", "server.ts"),
+            "--import",
+            toNodeImportSpecifier(
+              repoRoot,
+              path.join(repoRoot, TSX_ESM_LOADER_PATH),
+              pathMode,
+            ),
+            options.clawMcpServerEntry
+              ? toConfigPath(
+                  repoRoot,
+                  path.resolve(repoRoot, options.clawMcpServerEntry),
+                  pathMode,
+                )
+              : fromRepoRoot("src", "mcp", "server.ts"),
           ],
-          cwd: repoRoot,
+          cwd: toConfigPath(repoRoot, repoRoot, pathMode),
           env: {
-            CLAW_DATA_DIR: dataRoot,
+            CLAW_DATA_DIR: toConfigPath(repoRoot, dataRoot, pathMode),
           },
         },
       },
     },
   };
+}
+
+export function createLoadableClawAgentOpenClawConfig(
+  options: ClawAgentOpenClawConfigOptions,
+): LoadableClawAgentOpenClawConfig {
+  const { openclawRuntime: _openclawRuntime, ...loadableConfig } =
+    createClawAgentOpenClawConfig(options);
+
+  return loadableConfig;
 }

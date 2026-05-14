@@ -7,6 +7,7 @@ import type { FilesAppendResult } from "../archive/write-audit.js";
 import type { ScopeGetResult } from "../scope/scope-get.js";
 import {
   CLAW_AGENT_ID,
+  TSX_ESM_LOADER_PATH,
   createClawAgentOpenClawConfig,
   type ClawAgentOpenClawConfig,
 } from "./claw-agent-config.js";
@@ -221,11 +222,7 @@ async function runOpenClawPiSedimentationHelper(params: {
   const helperPath = path.join(params.repoRoot, "scripts", "openclaw-pi-sedimentation-turn.ts");
   assertOpenClawPiRuntimeAvailable(params.openclawCheckoutPath);
 
-  const command = packageManagerExecCommand([
-    "--dir",
-    params.openclawCheckoutPath,
-    "exec",
-    "tsx",
+  const command = nodeWithTsxLoaderCommand(params.openclawCheckoutPath, [
     helperPath,
   ]);
   const child = spawn(command.command, command.args, {
@@ -306,22 +303,13 @@ function openClawPiRunnerPath(openclawCheckoutPath: string): string {
   return path.join(openclawCheckoutPath, "src", "agents", "pi-embedded-runner.ts");
 }
 
-function packageManagerExecCommand(args: string[]): {
+function nodeWithTsxLoaderCommand(openclawCheckoutPath: string, args: string[]): {
   command: string;
   args: string[];
 } {
-  const npmExecPath = process.env.npm_execpath;
-
-  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
-    return {
-      command: process.execPath,
-      args: [npmExecPath, ...args],
-    };
-  }
-
   return {
-    command: "pnpm",
-    args,
+    command: process.execPath,
+    args: ["--import", path.join(openclawCheckoutPath, TSX_ESM_LOADER_PATH), ...args],
   };
 }
 

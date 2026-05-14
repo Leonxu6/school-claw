@@ -3,6 +3,7 @@ import path from "node:path";
 
 import {
   CLAW_AGENT_ID,
+  TSX_ESM_LOADER_PATH,
   createClawAgentOpenClawConfig,
   type ClawAgentOpenClawConfig,
 } from "./claw-agent-config.js";
@@ -124,30 +125,13 @@ export function resolveQaChannelHelperInvocation(params: {
   };
 }): QaChannelHelperInvocation {
   const helperPath = path.join(params.repoRoot, "scripts", "openclaw-qa-turn.ts");
-  const pnpmExecPath = params.env.npm_execpath;
-
-  if (pnpmExecPath && isPnpmExecPath(pnpmExecPath)) {
-    return {
-      command: "node",
-      args: [
-        pnpmExecPath,
-        "--dir",
-        params.openclawCheckoutPath,
-        "exec",
-        "tsx",
-        helperPath,
-      ],
-    };
-  }
 
   return {
-    command: "pnpm",
-    args: ["--dir", params.openclawCheckoutPath, "exec", "tsx", helperPath],
+    command: "node",
+    args: [
+      "--import",
+      path.join(params.openclawCheckoutPath, TSX_ESM_LOADER_PATH),
+      helperPath,
+    ],
   };
-}
-
-function isPnpmExecPath(execPath: string): boolean {
-  return execPath
-    .split(/[\\/]/u)
-    .some((segment) => segment.toLowerCase().includes("pnpm"));
 }
