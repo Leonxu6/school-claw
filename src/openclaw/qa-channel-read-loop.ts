@@ -28,6 +28,11 @@ export type OpenClawQaChannelReadLoopDemo = {
 
 type HelperOutput = Omit<OpenClawQaChannelReadLoopDemo, "config">;
 
+export type QaChannelHelperInvocation = {
+  command: string;
+  args: string[];
+};
+
 export async function runOpenClawQaChannelReadLoopDemo(
   options: ReadLoopPaths & {
     turns: QaChannelReadLoopTurn[];
@@ -53,18 +58,19 @@ async function runQaChannelHelper(params: {
   openclawCheckoutPath: string;
   turns: QaChannelReadLoopTurn[];
 }): Promise<HelperOutput> {
-  const helperPath = path.join(params.repoRoot, "scripts", "openclaw-qa-turn.ts");
-  const child = spawn(
-    "pnpm",
-    ["--dir", params.openclawCheckoutPath, "exec", "tsx", helperPath],
-    {
-      cwd: params.openclawCheckoutPath,
-      stdio: ["pipe", "pipe", "pipe"],
-      env: {
-        ...process.env,
-      },
+  const invocation = resolveQaChannelHelperInvocation({
+    repoRoot: params.repoRoot,
+    openclawCheckoutPath: params.openclawCheckoutPath,
+    nodePath: process.execPath,
+    env: process.env,
+  });
+  const child = spawn(invocation.command, invocation.args, {
+    cwd: params.openclawCheckoutPath,
+    stdio: ["pipe", "pipe", "pipe"],
+    env: {
+      ...process.env,
     },
-  );
+  });
   const stdout: Buffer[] = [];
   const stderr: Buffer[] = [];
 
@@ -109,4 +115,41 @@ async function runQaChannelHelper(params: {
   }
 
   return parsed;
+}
+
+export function resolveQaChannelHelperInvocation(params: {
+  repoRoot: string;
+  openclawCheckoutPath: string;
+  nodePath: string;
+  env: {
+    npm_execpath?: string;
+  };
+}): QaChannelHelperInvocation {
+  const helperPath = path.join(params.repoRoot, "scripts", "openclaw-qa-turn.ts");
+  const pnpmExecPath = params.env.npm_execpath;
+
+  if (pnpmExecPath && isPnpmExecPath(pnpmExecPath)) {
+    return {
+      command: params.nodePath,
+      args: [
+        pnpmExecPath,
+        "--dir",
+        params.openclawCheckoutPath,
+        "exec",
+        "tsx",
+        helperPath,
+      ],
+    };
+  }
+
+  return {
+    command: "pnpm",
+    args: ["--dir", params.openclawCheckoutPath, "exec", "tsx", helperPath],
+  };
+}
+
+function isPnpmExecPath(execPath: string): boolean {
+  return execPath
+    .split(/[\\/]/u)
+    .some((segment) => segment.toLowerCase().includes("pnpm"));
 }

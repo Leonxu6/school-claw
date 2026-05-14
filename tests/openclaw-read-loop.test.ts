@@ -7,7 +7,10 @@ import { describe, expect, it } from "vitest";
 
 import { connectClawMcpClient } from "../src/mcp/client.js";
 import { createClawAgentOpenClawConfig } from "../src/openclaw/claw-agent-config.js";
-import { runOpenClawQaChannelReadLoopDemo } from "../src/openclaw/qa-channel-read-loop.js";
+import {
+  resolveQaChannelHelperInvocation,
+  runOpenClawQaChannelReadLoopDemo,
+} from "../src/openclaw/qa-channel-read-loop.js";
 import {
   runClawAgentReadTurn,
   runOneAgentOpenClawReadLoopDemo,
@@ -229,6 +232,51 @@ describe("one-agent OpenClaw read loop", () => {
     expect(demo.logLines.join("\n")).toContain("real CLAW MCP server handled scope_get");
     expect(demo.nativeToolCalls).toEqual([]);
   }, 30_000);
+
+  it("does not require pnpm to be discoverable on PATH when pnpm launched the test", () => {
+    const invocation = resolveQaChannelHelperInvocation({
+      repoRoot: "/repo",
+      openclawCheckoutPath: "/openclaw",
+      nodePath: "/node",
+      env: {
+        npm_execpath: "/opt/pnpm/bin/pnpm.cjs",
+      },
+    });
+
+    expect(invocation).toEqual({
+      command: "/node",
+      args: [
+        "/opt/pnpm/bin/pnpm.cjs",
+        "--dir",
+        "/openclaw",
+        "exec",
+        "tsx",
+        path.join("/repo", "scripts", "openclaw-qa-turn.ts"),
+      ],
+    });
+  });
+
+  it("falls back to the pnpm command for non-pnpm launchers", () => {
+    const invocation = resolveQaChannelHelperInvocation({
+      repoRoot: "/repo",
+      openclawCheckoutPath: "/openclaw",
+      nodePath: "/node",
+      env: {
+        npm_execpath: "/opt/npm/bin/npm-cli.js",
+      },
+    });
+
+    expect(invocation).toEqual({
+      command: "pnpm",
+      args: [
+        "--dir",
+        "/openclaw",
+        "exec",
+        "tsx",
+        path.join("/repo", "scripts", "openclaw-qa-turn.ts"),
+      ],
+    });
+  });
 
   it("stops after scope_get when the session is disabled", async () => {
     const turn = await runClawAgentReadTurn({
