@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -130,7 +131,7 @@ export function resolveQaChannelHelperInvocation(params: {
 
   if (pnpmExecPath && isPnpmExecPath(pnpmExecPath)) {
     return {
-      command: params.nodePath,
+      command: nodeCommand(params.nodePath),
       args: [
         pnpmExecPath,
         "--dir",
@@ -152,4 +153,8 @@ function isPnpmExecPath(execPath: string): boolean {
   return execPath
     .split(/[\\/]/u)
     .some((segment) => segment.toLowerCase().includes("pnpm"));
+}
+
+function nodeCommand(nodePath: string): string {
+  return existsSync(nodePath) ? nodePath : "node";
 }
