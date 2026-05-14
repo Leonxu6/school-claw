@@ -1,0 +1,12 @@
+{
+  "id": "claw-scope-bridge",
+  "name": "CLAW Scope Bridge",
+  "description": "Injects the trusted OpenClaw sessionKey into CLAW MCP tool calls.",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
