@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -62,7 +61,6 @@ async function runQaChannelHelper(params: {
   const invocation = resolveQaChannelHelperInvocation({
     repoRoot: params.repoRoot,
     openclawCheckoutPath: params.openclawCheckoutPath,
-    nodePath: process.execPath,
     env: process.env,
   });
   const child = spawn(invocation.command, invocation.args, {
@@ -121,7 +119,6 @@ async function runQaChannelHelper(params: {
 export function resolveQaChannelHelperInvocation(params: {
   repoRoot: string;
   openclawCheckoutPath: string;
-  nodePath: string;
   env: {
     npm_execpath?: string;
   };
@@ -131,7 +128,7 @@ export function resolveQaChannelHelperInvocation(params: {
 
   if (pnpmExecPath && isPnpmExecPath(pnpmExecPath)) {
     return {
-      command: nodeCommand(params.nodePath),
+      command: "node",
       args: [
         pnpmExecPath,
         "--dir",
@@ -153,8 +150,4 @@ function isPnpmExecPath(execPath: string): boolean {
   return execPath
     .split(/[\\/]/u)
     .some((segment) => segment.toLowerCase().includes("pnpm"));
-}
-
-function nodeCommand(nodePath: string): string {
-  return existsSync(nodePath) ? nodePath : "node";
 }

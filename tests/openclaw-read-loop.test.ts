@@ -237,14 +237,13 @@ describe("one-agent OpenClaw read loop", () => {
     const invocation = resolveQaChannelHelperInvocation({
       repoRoot: "/repo",
       openclawCheckoutPath: "/openclaw",
-      nodePath: process.execPath,
       env: {
         npm_execpath: "/opt/pnpm/bin/pnpm.cjs",
       },
     });
 
     expect(invocation).toEqual({
-      command: process.execPath,
+      command: "node",
       args: [
         "/opt/pnpm/bin/pnpm.cjs",
         "--dir",
@@ -256,11 +255,10 @@ describe("one-agent OpenClaw read loop", () => {
     });
   });
 
-  it("falls back to PATH node when process.execPath is stale in CI", () => {
+  it("uses PATH node instead of a hosted-toolcache absolute node path", () => {
     const invocation = resolveQaChannelHelperInvocation({
       repoRoot: "/repo",
       openclawCheckoutPath: "/openclaw",
-      nodePath: "/missing/hostedtoolcache/node/bin/node",
       env: {
         npm_execpath: "/opt/pnpm/bin/pnpm.cjs",
       },
@@ -283,7 +281,6 @@ describe("one-agent OpenClaw read loop", () => {
     const invocation = resolveQaChannelHelperInvocation({
       repoRoot: "/repo",
       openclawCheckoutPath: "/openclaw",
-      nodePath: "/node",
       env: {
         npm_execpath: "/opt/npm/bin/npm-cli.js",
       },
