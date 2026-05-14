@@ -33,6 +33,15 @@ const fileKindValues = [
   "artifacts",
   "class",
 ];
+const artifactTypeValues = [
+  "brief",
+  "practice",
+  "feedback",
+  "weekly_summary",
+  "ppt_outline",
+  "error_table",
+];
+const artifactFormatValues = ["markdown", "csv", "ppt_outline"];
 
 type ToolResultPayload = Record<string, unknown>;
 
@@ -179,6 +188,41 @@ const toolDefinitions = [
         },
       },
       required: ["target", "content", "reason"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "artifact_create",
+    description:
+      "Create an audited generated CLAW artifact from readable source files. The bridge injects ssid.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        artifactType: {
+          type: "string",
+          enum: artifactTypeValues,
+        },
+        title: {
+          type: "string",
+        },
+        studentId: {
+          type: "string",
+        },
+        format: {
+          type: "string",
+          enum: artifactFormatValues,
+        },
+        content: {
+          type: "string",
+        },
+        sourceFileIds: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+        },
+      },
+      required: ["artifactType", "title", "format", "content", "sourceFileIds"],
       additionalProperties: true,
     },
   },
