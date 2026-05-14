@@ -24,6 +24,11 @@ const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const parentBSsid = "agent:claw-agent:qqbot:direct:parent-openid-002";
 const disabledParentSsid =
   "agent:claw-agent:qqbot:direct:disabled-parent-openid-001";
+const openclawQaChannelAvailable =
+  existsSync("/Users/leon/openclaw/extensions/qa-channel/src/inbound.ts") &&
+  existsSync("/Users/leon/openclaw/extensions/qa-channel/api.ts") &&
+  existsSync("/Users/leon/openclaw/extensions/qa-lab/bus-api.ts") &&
+  existsSync("/Users/leon/openclaw/src/agents/pi-bundle-mcp-materialize.ts");
 
 describe("one-agent OpenClaw read loop", () => {
   it("defines one claw-agent with runnable CLAW MCP access and no native data tools", () => {
@@ -190,48 +195,59 @@ describe("one-agent OpenClaw read loop", () => {
     );
   });
 
-  it("dispatches OpenClaw QA-channel messages into one claw-agent", async () => {
-    const demo = await runOpenClawQaChannelReadLoopDemo({
-      repoRoot,
-      dataRoot,
-      turns: [
-        {
-          senderId: "parent-openid-001",
-          message: "我孩子今天数学怎么样？",
-        },
-        {
-          senderId: "parent-openid-002",
-          message: "我孩子今天数学怎么样？",
-        },
-      ],
-    });
+  it.skipIf(!openclawQaChannelAvailable)(
+    "dispatches OpenClaw QA-channel messages into one claw-agent",
+    async () => {
+      const demo = await runOpenClawQaChannelReadLoopDemo({
+        repoRoot,
+        dataRoot,
+        turns: [
+          {
+            senderId: "parent-openid-001",
+            message: "我孩子今天数学怎么样？",
+          },
+          {
+            senderId: "parent-openid-002",
+            message: "我孩子今天数学怎么样？",
+          },
+        ],
+      });
 
-    expect(demo.runs.map((run) => run.agentId)).toEqual([
-      "claw-agent",
-      "claw-agent",
-    ]);
-    expect(demo.runs.map((run) => run.sessionKey)).toEqual([parentASsid, parentBSsid]);
-    expect(demo.runs.flatMap((run) => run.toolCalls.map((call) => call.transport))).toEqual([
-      "openclaw-bundle-mcp",
-      "openclaw-bundle-mcp",
-      "openclaw-bundle-mcp",
-      "openclaw-bundle-mcp",
-    ]);
-    expect(demo.runs[0]?.reply).toContain("张三");
-    expect(demo.runs[1]?.reply).toContain("李四");
-    expect(demo.outboundMessages.map((message) => message.text)).toEqual([
-      expect.stringContaining("张三"),
-      expect.stringContaining("李四"),
-    ]);
-    expect(demo.logLines.join("\n")).toContain(
-      "OpenClaw QA-channel handleQaInbound dispatched claw-agent",
-    );
-    expect(demo.logLines.join("\n")).toContain(
-      "OpenClaw bundle MCP materialized claw__scope_get",
-    );
-    expect(demo.logLines.join("\n")).toContain("real CLAW MCP server handled scope_get");
-    expect(demo.nativeToolCalls).toEqual([]);
-  }, 30_000);
+      expect(demo.runs.map((run) => run.agentId)).toEqual([
+        "claw-agent",
+        "claw-agent",
+      ]);
+      expect(demo.runs.map((run) => run.sessionKey)).toEqual([
+        parentASsid,
+        parentBSsid,
+      ]);
+      expect(
+        demo.runs.flatMap((run) => run.toolCalls.map((call) => call.transport)),
+      ).toEqual([
+        "openclaw-bundle-mcp",
+        "openclaw-bundle-mcp",
+        "openclaw-bundle-mcp",
+        "openclaw-bundle-mcp",
+      ]);
+      expect(demo.runs[0]?.reply).toContain("张三");
+      expect(demo.runs[1]?.reply).toContain("李四");
+      expect(demo.outboundMessages.map((message) => message.text)).toEqual([
+        expect.stringContaining("张三"),
+        expect.stringContaining("李四"),
+      ]);
+      expect(demo.logLines.join("\n")).toContain(
+        "OpenClaw QA-channel handleQaInbound dispatched claw-agent",
+      );
+      expect(demo.logLines.join("\n")).toContain(
+        "OpenClaw bundle MCP materialized claw__scope_get",
+      );
+      expect(demo.logLines.join("\n")).toContain(
+        "real CLAW MCP server handled scope_get",
+      );
+      expect(demo.nativeToolCalls).toEqual([]);
+    },
+    30_000,
+  );
 
   it("does not require pnpm to be discoverable on PATH when pnpm launched the test", () => {
     const invocation = resolveQaChannelHelperInvocation({
