@@ -26,10 +26,11 @@ Expected journey:
 2. OpenClaw Pi Runtime executes the agent turn with the `pi` harness.
 3. The model calls `claw__scope_get` to resolve the sender scope.
 4. The model calls `claw__files_append` through OpenClaw bundle MCP.
-5. CLAW MCP validates the parent can write only the scoped student record.
-6. A parent observation markdown file is appended.
-7. An audit record is created.
-8. The visible reply confirms the observation was recorded.
+5. The CLAW Scope Bridge MCP proxy overwrites any model-provided `ssid` with the OpenClaw `sessionKey`.
+6. CLAW MCP validates the parent can write only the scoped student record.
+7. A parent observation markdown file is appended.
+8. An audit record is created.
+9. The visible reply confirms the observation was recorded.
 
 Expected durable record file:
 
@@ -113,6 +114,31 @@ Expected result:
 
 No audit entry should be written for the denied operation.
 
+### 5. Model-Forged `ssid` Is Overwritten In Pi Runtime
+
+Reviewer runs the OpenClaw Pi Runtime parent session, but the deterministic model emits a `claw__files_append` call with the teacher `ssid` and target `stu_002`.
+
+Expected journey:
+
+1. OpenClaw Pi Runtime still executes the turn through `runEmbeddedPiAgent`.
+2. OpenClaw bundle MCP routes the call to the `claw` server.
+3. The `claw` server is the Scope Bridge MCP proxy.
+4. The proxy overwrites the model-provided teacher `ssid` with the real parent `sessionKey`.
+5. The raw CLAW MCP server receives parent authority and rejects the `stu_002` write.
+
+Expected result:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "FORBIDDEN"
+  }
+}
+```
+
+The file `classes/class_001/students/stu_002/timeline/2026-06-01.md` must not exist, and no audit entry should be written for the denied operation.
+
 ## E2E Commands
 
 Run from:
@@ -132,7 +158,7 @@ Expected output must include:
 ```text
 OpenClaw Pi Runtime runEmbeddedPiAgent executed claw-agent turns
 /Users/leon/openclaw: OpenClaw Pi Runtime checkout
-OpenClaw bundle MCP materialized CLAW MCP tools
+OpenClaw bundle MCP materialized CLAW MCP tools through Scope Bridge
 real CLAW MCP server handled scope_get/files_append/files_read_all
 files_append writes scoped observation
 audit entry appears
@@ -152,7 +178,7 @@ Expected result:
 
 ```text
 tests/sedimentation-loop.test.ts
-3 tests passed
+4 tests passed
 ```
 
 This test verifies:
@@ -165,6 +191,7 @@ This test verifies:
 - Idle chat calls `claw__scope_get` only.
 - All issue 0008 tool calls report transport `openclaw-pi-runtime`.
 - Parent cross-student `files_append` is still forbidden.
+- A model-forged teacher `ssid` in a parent Pi Runtime session is overwritten and rejected before writing `stu_002`.
 
 ### Full Regression
 
@@ -178,7 +205,7 @@ Expected result:
 
 ```text
 typecheck passes
-53 tests pass
+54 tests pass
 git diff --check emits no output
 ```
 
@@ -192,7 +219,8 @@ runSedimentationDemo
     -> /Users/leon/openclaw/src/agents/pi-embedded-runner.ts runEmbeddedPiAgent
       -> OpenClaw Pi harness
       -> OpenClaw bundle MCP materialization
-      -> CLAW MCP server
+      -> CLAW Scope Bridge MCP proxy
+      -> raw CLAW MCP server
       -> scoped archive read/write/audit
 ```
 
@@ -208,12 +236,5 @@ Treat any of these as a failed handoff:
 - The durable fact writes without an audit entry.
 - Idle chat creates a second `files_append` audit action.
 - Cross-student write returns `ok: true`.
+- The forged-`ssid` Pi Runtime probe writes `stu_002` or creates an audit entry.
 - `git status --short` shows new untracked issue deliverables.
-
-## Current Known Commit
-
-The OpenClaw Pi Runtime refactor is committed as:
-
-```text
-31a8e22 Use OpenClaw Pi runtime for sedimentation
-```

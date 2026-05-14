@@ -14,13 +14,17 @@ import { describe, expect, it } from "vitest";
 
 import { connectClawMcpClient } from "../src/mcp/client.js";
 import { createClawAgentOpenClawConfig } from "../src/openclaw/claw-agent-config.js";
-import { runSedimentationDemo } from "../src/openclaw/sedimentation-loop.js";
+import {
+  runForgedSsidSedimentationProbe,
+  runSedimentationDemo,
+} from "../src/openclaw/sedimentation-loop.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const fixtureRoot = fileURLToPath(
   new URL("./fixtures/markdown-archive/", import.meta.url),
 );
 const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
+const teacherSsid = "agent:claw-agent:feishu:direct:teacher-openid-001";
 
 function createScratchArchive(): { scratchRoot: string; dataRoot: string } {
   const scratchRoot = path.join(tmpdir(), `school-claw-sedimentation-${crypto.randomUUID()}`);
@@ -184,6 +188,53 @@ describe("agent learning-record sedimentation loop", () => {
       rmSync(scratchRoot, { recursive: true, force: true });
     }
   });
+
+  it("overwrites model-forged ssid before Pi Runtime CLAW MCP writes", async () => {
+    const { scratchRoot, dataRoot } = createScratchArchive();
+    const forgedFileId =
+      "classes/class_001/students/stu_002/timeline/2026-06-01.md";
+
+    try {
+      const probe = await runForgedSsidSedimentationProbe({
+        repoRoot,
+        dataRoot,
+        sessionKey: parentASsid,
+        forgedSsid: teacherSsid,
+        nowIso: "2026-06-01T12:00:00.000Z",
+      });
+
+      expect(probe.runtime).toBe("openclaw-pi-runtime");
+      expect(probe.forgedFileId).toBe(forgedFileId);
+      expect(probe.forgedExists).toBe(false);
+      expect(existsSync(path.join(dataRoot, forgedFileId))).toBe(false);
+      expect(probe.turn.toolCalls.map((call) => call.toolName)).toEqual([
+        "claw__scope_get",
+        "claw__files_append",
+      ]);
+
+      const appendCall = probe.turn.toolCalls.find((call) => {
+        return call.toolName === "claw__files_append";
+      });
+
+      expect(appendCall?.params).toMatchObject({
+        ssid: teacherSsid,
+        target: {
+          kind: "timeline",
+          studentId: "stu_002",
+          date: "2026-06-01",
+        },
+      });
+      expect(appendCall?.result).toMatchObject({
+        ok: false,
+        error: {
+          code: "FORBIDDEN",
+        },
+      });
+      expect(readAuditEntries(dataRoot)).toEqual([]);
+    } finally {
+      rmSync(scratchRoot, { recursive: true, force: true });
+    }
+  }, 120_000);
 
   it("does not export the old handwritten sedimentation agent loop", async () => {
     const module = await import("../src/openclaw/sedimentation-loop.js");

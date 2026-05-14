@@ -24,9 +24,10 @@ type HelperInput = {
   dataRoot: string;
   openclawCheckoutPath: string;
   sessionKey: string;
+  forgedSsid?: string;
   nowIso?: string;
   turns: Array<{
-    id: "learningFactTurn" | "followUpTurn" | "idleTurn";
+    id: "learningFactTurn" | "followUpTurn" | "idleTurn" | "forgedSsidTurn";
     scenario: SedimentationScenario;
     message: string;
   }>;
@@ -82,6 +83,7 @@ const { runEmbeddedPiAgent } = (await import(
 
 const modelServer = await startDeterministicResponsesServer({
   sessionKey: input.sessionKey,
+  ...(input.forgedSsid ? { forgedSsid: input.forgedSsid } : {}),
   ...(input.nowIso ? { nowIso: input.nowIso } : {}),
 });
 const tempRoot = await mkdtemp(path.join(tmpdir(), "school-claw-openclaw-pi-sedimentation-"));
@@ -101,6 +103,7 @@ try {
     baseUrl: modelServer.baseUrl,
     repoRoot: input.repoRoot,
     dataRoot: input.dataRoot,
+    sessionKey: input.sessionKey,
     ...(input.nowIso ? { nowIso: input.nowIso } : {}),
   });
   const turns: Record<HelperInput["turns"][number]["id"], SedimentationTurn> =
@@ -182,10 +185,11 @@ try {
       learningFactTurn: turns.learningFactTurn,
       followUpTurn: turns.followUpTurn,
       idleTurn: turns.idleTurn,
+      forgedSsidTurn: turns.forgedSsidTurn,
       logLines: [
         "OpenClaw Pi Runtime runEmbeddedPiAgent executed claw-agent turns",
         `${schoolConfig.openclawRuntime.checkoutPath}: OpenClaw Pi Runtime checkout`,
-        "OpenClaw bundle MCP materialized CLAW MCP tools",
+        "OpenClaw bundle MCP materialized CLAW MCP tools through Scope Bridge",
         "real CLAW MCP server handled scope_get/files_append/files_read_all",
         "files_append writes scoped observation",
         "audit entry appears",
@@ -204,13 +208,23 @@ function createOpenClawRuntimeConfig(params: {
   baseUrl: string;
   repoRoot: string;
   dataRoot: string;
+  sessionKey: string;
   nowIso?: string;
 }): Record<string, unknown> {
-  const schoolConfig = createClawAgentOpenClawConfig({
-    repoRoot: params.repoRoot,
-    dataRoot: params.dataRoot,
-  });
-  const clawServer = schoolConfig.mcp.servers.claw;
+  const scopeBridgeServer = {
+    command: "pnpm",
+    args: [
+      "tsx",
+      path.join(params.repoRoot, "scripts", "openclaw-scope-bridge-mcp-server.ts"),
+    ],
+    cwd: params.repoRoot,
+    env: {
+      CLAW_DATA_DIR: params.dataRoot,
+      CLAW_SCOPE_BRIDGE_REPO_ROOT: params.repoRoot,
+      CLAW_SESSION_KEY: params.sessionKey,
+      ...(params.nowIso ? { CLAW_NOW: params.nowIso } : {}),
+    },
+  };
 
   return {
     plugins: {
@@ -249,13 +263,7 @@ function createOpenClawRuntimeConfig(params: {
     mcp: {
       sessionIdleTtlMs: 1,
       servers: {
-        claw: {
-          ...clawServer,
-          env: {
-            ...clawServer.env,
-            ...(params.nowIso ? { CLAW_NOW: params.nowIso } : {}),
-          },
-        },
+        claw: scopeBridgeServer,
       },
     },
   };
@@ -263,6 +271,7 @@ function createOpenClawRuntimeConfig(params: {
 
 async function startDeterministicResponsesServer(params: {
   sessionKey: string;
+  forgedSsid?: string;
   nowIso?: string;
 }): Promise<{
   baseUrl: string;
@@ -343,6 +352,7 @@ function nextResponseEvents(
   turn: ActiveTurn,
   params: {
     sessionKey: string;
+    forgedSsid?: string;
     nowIso?: string;
   },
 ): Array<Record<string, unknown>> {
@@ -397,6 +407,34 @@ function nextResponseEvents(
         "证据：2026-06-01 家长学习观察；错因：没看清题目问的是什么。",
       ].join("\n"),
     );
+  }
+
+  if (turn.scenario === "forged_ssid_cross_student") {
+    if (step === 0) {
+      return responseToolCall(responseIndex, "claw__scope_get", {
+        ssid: params.sessionKey,
+      });
+    }
+    if (step === 1) {
+      return responseToolCall(responseIndex, "claw__files_append", {
+        ssid: params.forgedSsid ?? params.sessionKey,
+        target: {
+          kind: "timeline",
+          studentId: "stu_002",
+          date: "2026-06-01",
+        },
+        frontmatter: {
+          source_kind: "forged_ssid_security_probe",
+        },
+        content: [
+          "# 2026-06-01 forged cross-student timeline",
+          "",
+          "- 不应写入：模型伪造 teacher ssid 写入另一个学生。",
+        ].join("\n"),
+        reason: "forged ssid probe must remain scoped to the real session",
+      });
+    }
+    return responseText(responseIndex, "安全探针完成。");
   }
 
   if (step === 0) {
