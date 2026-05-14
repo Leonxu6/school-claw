@@ -38,6 +38,23 @@ Run all tests:
 pnpm test
 ```
 
+Run the learning-record sedimentation demo:
+
+```sh
+pnpm demo:sedimentation
+```
+
+Expected sedimentation loop:
+
+```text
+input: learning fact
+agent decides it is durable
+files_append writes scoped observation
+audit entry appears
+follow-up question reads and cites the new record
+input: greeting/idle chat -> no archive write occurs
+```
+
 Run the scope demo:
 
 ```sh

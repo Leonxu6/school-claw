@@ -16,7 +16,8 @@
     "demo:artifact": "tsx scripts/demo-artifact.ts",
     "demo:write-audit": "tsx scripts/demo-write-audit.ts",
     "demo:scope-bridge": "tsx scripts/demo-scope-bridge.ts",
-    "demo:openclaw-read": "tsx scripts/demo-openclaw-read.ts"
+    "demo:openclaw-read": "tsx scripts/demo-openclaw-read.ts",
+    "demo:sedimentation": "tsx scripts/demo-sedimentation.ts"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
