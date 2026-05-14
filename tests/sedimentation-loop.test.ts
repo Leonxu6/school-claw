@@ -14,10 +14,7 @@ import { describe, expect, it } from "vitest";
 
 import { connectClawMcpClient } from "../src/mcp/client.js";
 import { createClawAgentOpenClawConfig } from "../src/openclaw/claw-agent-config.js";
-import {
-  runClawAgentSedimentationTurn,
-  runSedimentationDemo,
-} from "../src/openclaw/sedimentation-loop.js";
+import { runSedimentationDemo } from "../src/openclaw/sedimentation-loop.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const fixtureRoot = fileURLToPath(
@@ -73,12 +70,20 @@ describe("agent learning-record sedimentation loop", () => {
         idleChat: "你好，辛苦了。",
       });
 
+      expect(demo.runtime).toBe("openclaw-pi-runtime");
+      expect(demo.runs).toHaveLength(3);
+      expect(demo.runs.every((run) => run.agentHarnessId === "pi")).toBe(true);
+      expect(demo.logLines.join("\n")).toContain(
+        "OpenClaw Pi Runtime runEmbeddedPiAgent executed claw-agent turns",
+      );
       expect(demo.learningFactTurn.ok).toBe(true);
-      expect(demo.learningFactTurn.classification.durable).toBe(true);
       expect(demo.learningFactTurn.toolCalls.map((call) => call.toolName)).toEqual([
         "claw__scope_get",
         "claw__files_append",
       ]);
+      expect(demo.learningFactTurn.toolCalls.every((call) => {
+        return call.transport === "openclaw-pi-runtime";
+      })).toBe(true);
       expect(demo.learningFactTurn.nativeToolCalls).toEqual([]);
 
       const appendCall = demo.learningFactTurn.toolCalls.find((call) => {
@@ -130,7 +135,6 @@ describe("agent learning-record sedimentation loop", () => {
       expect(demo.followUpTurn.reply).toContain("证据");
       expect(demo.followUpTurn.nativeToolCalls).toEqual([]);
 
-      expect(demo.idleTurn.classification.durable).toBe(false);
       expect(demo.idleTurn.toolCalls.map((call) => call.toolName)).toEqual([
         "claw__scope_get",
       ]);
@@ -142,31 +146,7 @@ describe("agent learning-record sedimentation loop", () => {
     } finally {
       rmSync(scratchRoot, { recursive: true, force: true });
     }
-  });
-
-  it("does not write guesses or ordinary chat", async () => {
-    const { scratchRoot, dataRoot } = createScratchArchive();
-
-    try {
-      const turn = await runClawAgentSedimentationTurn({
-        repoRoot,
-        dataRoot,
-        sessionKey: parentASsid,
-        nowIso: "2026-06-01T12:00:00.000Z",
-        message: "我感觉他可能是不是有点厌学？",
-      });
-
-      expect(turn.ok).toBe(true);
-      expect(turn.classification).toMatchObject({
-        durable: false,
-        reason: "not durable learning evidence",
-      });
-      expect(turn.toolCalls.map((call) => call.toolName)).toEqual(["claw__scope_get"]);
-      expect(readAuditEntries(dataRoot)).toEqual([]);
-    } finally {
-      rmSync(scratchRoot, { recursive: true, force: true });
-    }
-  });
+  }, 120_000);
 
   it("keeps parent cross-student writes forbidden through the exposed MCP tool", async () => {
     const { scratchRoot, dataRoot } = createScratchArchive();
@@ -203,5 +183,11 @@ describe("agent learning-record sedimentation loop", () => {
       await client.close();
       rmSync(scratchRoot, { recursive: true, force: true });
     }
+  });
+
+  it("does not export the old handwritten sedimentation agent loop", async () => {
+    const module = await import("../src/openclaw/sedimentation-loop.js");
+
+    expect(module).not.toHaveProperty("runClawAgentSedimentationTurn");
   });
 });
