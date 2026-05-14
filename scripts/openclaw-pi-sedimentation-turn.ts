@@ -211,12 +211,13 @@ function createOpenClawRuntimeConfig(params: {
   sessionKey: string;
   nowIso?: string;
 }): Record<string, unknown> {
+  const scopeBridgeCommand = packageManagerExecCommand([
+    "tsx",
+    path.join(params.repoRoot, "scripts", "openclaw-scope-bridge-mcp-server.ts"),
+  ]);
   const scopeBridgeServer = {
-    command: "pnpm",
-    args: [
-      "tsx",
-      path.join(params.repoRoot, "scripts", "openclaw-scope-bridge-mcp-server.ts"),
-    ],
+    command: scopeBridgeCommand.command,
+    args: scopeBridgeCommand.args,
     cwd: params.repoRoot,
     env: {
       CLAW_DATA_DIR: params.dataRoot,
@@ -266,6 +267,25 @@ function createOpenClawRuntimeConfig(params: {
         claw: scopeBridgeServer,
       },
     },
+  };
+}
+
+function packageManagerExecCommand(args: string[]): {
+  command: string;
+  args: string[];
+} {
+  const npmExecPath = process.env.npm_execpath;
+
+  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
+    return {
+      command: process.execPath,
+      args: [npmExecPath, ...args],
+    };
+  }
+
+  return {
+    command: "pnpm",
+    args,
   };
 }
 

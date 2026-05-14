@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import { connectClawMcpClient } from "../src/mcp/client.js";
 import { createClawAgentOpenClawConfig } from "../src/openclaw/claw-agent-config.js";
 import {
+  isOpenClawPiRuntimeAvailable,
   runForgedSsidSedimentationProbe,
   runSedimentationDemo,
 } from "../src/openclaw/sedimentation-loop.js";
@@ -25,6 +26,9 @@ const fixtureRoot = fileURLToPath(
 );
 const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const teacherSsid = "agent:claw-agent:feishu:direct:teacher-openid-001";
+const piRuntimeIt = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot })
+  ? it
+  : it.skip;
 
 function createScratchArchive(): { scratchRoot: string; dataRoot: string } {
   const scratchRoot = path.join(tmpdir(), `school-claw-sedimentation-${crypto.randomUUID()}`);
@@ -60,7 +64,17 @@ function walkFiles(rootPath: string): string[] {
 }
 
 describe("agent learning-record sedimentation loop", () => {
-  it("records durable parent evidence through MCP and later cites the new record", async () => {
+  it("detects when the external OpenClaw Pi Runtime checkout is unavailable", () => {
+    expect(
+      isOpenClawPiRuntimeAvailable({
+        repoRoot,
+        dataRoot: fixtureRoot,
+        openclawCheckoutPath: path.join(tmpdir(), "missing-openclaw-checkout"),
+      }),
+    ).toBe(false);
+  });
+
+  piRuntimeIt("records durable parent evidence through MCP and later cites the new record", async () => {
     const { scratchRoot, dataRoot } = createScratchArchive();
 
     try {
@@ -189,7 +203,7 @@ describe("agent learning-record sedimentation loop", () => {
     }
   });
 
-  it("overwrites model-forged ssid before Pi Runtime CLAW MCP writes", async () => {
+  piRuntimeIt("overwrites model-forged ssid before Pi Runtime CLAW MCP writes", async () => {
     const { scratchRoot, dataRoot } = createScratchArchive();
     const forgedFileId =
       "classes/class_001/students/stu_002/timeline/2026-06-01.md";

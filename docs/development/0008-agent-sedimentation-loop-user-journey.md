@@ -178,11 +178,12 @@ Expected result:
 
 ```text
 tests/sedimentation-loop.test.ts
-4 tests passed
+5 tests passed
 ```
 
 This test verifies:
 
+- The external OpenClaw Pi Runtime checkout is detected before spawning child helpers.
 - `demo.runtime === "openclaw-pi-runtime"`.
 - Every run reports `agentHarnessId === "pi"`.
 - The old handwritten `runClawAgentSedimentationTurn` export is absent.
@@ -192,6 +193,8 @@ This test verifies:
 - All issue 0008 tool calls report transport `openclaw-pi-runtime`.
 - Parent cross-student `files_append` is still forbidden.
 - A model-forged teacher `ssid` in a parent Pi Runtime session is overwritten and rejected before writing `stu_002`.
+
+In generic CI environments without the pinned OpenClaw checkout, the two real Pi Runtime E2E tests should be reported as skipped rather than failing with `spawn pnpm ENOENT`. On a development machine with `/Users/leon/openclaw`, they should run and pass.
 
 ### Full Regression
 
@@ -205,7 +208,7 @@ Expected result:
 
 ```text
 typecheck passes
-54 tests pass
+55 tests pass
 git diff --check emits no output
 ```
 

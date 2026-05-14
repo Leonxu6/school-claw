@@ -180,11 +180,15 @@ const toolDefinitions = [
 async function createScopeBridgeMcpServer(
   options: ScopeBridgeMcpServerOptions,
 ): Promise<Server> {
+  const rawServerCommand = packageManagerExecCommand([
+    "tsx",
+    path.join(options.repoRoot, "src", "mcp", "server.ts"),
+  ]);
   const rawClient = await connectClawMcpClient({
     serverName: "claw-raw",
     server: {
-      command: "pnpm",
-      args: ["tsx", path.join(options.repoRoot, "src", "mcp", "server.ts")],
+      command: rawServerCommand.command,
+      args: rawServerCommand.args,
       cwd: options.repoRoot,
       env: compactEnv({
         CLAW_DATA_DIR: options.dataRoot,
@@ -274,6 +278,25 @@ function compactEnv(env: Record<string, string | undefined>): Record<string, str
       return typeof entry[1] === "string";
     }),
   );
+}
+
+function packageManagerExecCommand(args: string[]): {
+  command: string;
+  args: string[];
+} {
+  const npmExecPath = process.env.npm_execpath;
+
+  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
+    return {
+      command: process.execPath,
+      args: [npmExecPath, ...args],
+    };
+  }
+
+  return {
+    command: "pnpm",
+    args,
+  };
 }
 
 function installShutdownHandlers(rawClient: ClawMcpClient): void {

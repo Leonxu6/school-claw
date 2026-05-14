@@ -97,6 +97,7 @@ export type SedimentationForgedSsidProbeOptions = {
   sessionKey: string;
   forgedSsid: string;
   nowIso?: string;
+  openclawCheckoutPath?: string;
 };
 
 type HelperInputTurn = {
@@ -198,6 +199,16 @@ export async function runForgedSsidSedimentationProbe(
   };
 }
 
+export function isOpenClawPiRuntimeAvailable(options: {
+  repoRoot: string;
+  dataRoot: string;
+  openclawCheckoutPath?: string;
+}): boolean {
+  const config = createClawAgentOpenClawConfig(options);
+
+  return existsSync(openClawPiRunnerPath(config.openclawRuntime.checkoutPath));
+}
+
 async function runOpenClawPiSedimentationHelper(params: {
   repoRoot: string;
   dataRoot: string;
@@ -208,18 +219,23 @@ async function runOpenClawPiSedimentationHelper(params: {
   turns: HelperInputTurn[];
 }): Promise<HelperOutput> {
   const helperPath = path.join(params.repoRoot, "scripts", "openclaw-pi-sedimentation-turn.ts");
-  const child = spawn(
-    "pnpm",
-    ["--dir", params.openclawCheckoutPath, "exec", "tsx", helperPath],
-    {
-      cwd: params.openclawCheckoutPath,
-      stdio: ["pipe", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        NODE_ENV: process.env.NODE_ENV ?? "test",
-      },
+  assertOpenClawPiRuntimeAvailable(params.openclawCheckoutPath);
+
+  const command = packageManagerExecCommand([
+    "--dir",
+    params.openclawCheckoutPath,
+    "exec",
+    "tsx",
+    helperPath,
+  ]);
+  const child = spawn(command.command, command.args, {
+    cwd: params.openclawCheckoutPath,
+    stdio: ["pipe", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      NODE_ENV: process.env.NODE_ENV ?? "test",
     },
-  );
+  });
   const stdout: Buffer[] = [];
   const stderr: Buffer[] = [];
 
@@ -271,6 +287,42 @@ async function runOpenClawPiSedimentationHelper(params: {
   }
 
   return parsed;
+}
+
+function assertOpenClawPiRuntimeAvailable(openclawCheckoutPath: string): void {
+  if (existsSync(openClawPiRunnerPath(openclawCheckoutPath))) {
+    return;
+  }
+
+  throw new Error(
+    [
+      `OpenClaw Pi Runtime checkout is unavailable: ${openclawCheckoutPath}`,
+      "Set openclawCheckoutPath or provide the pinned checkout before running this E2E.",
+    ].join("\n"),
+  );
+}
+
+function openClawPiRunnerPath(openclawCheckoutPath: string): string {
+  return path.join(openclawCheckoutPath, "src", "agents", "pi-embedded-runner.ts");
+}
+
+function packageManagerExecCommand(args: string[]): {
+  command: string;
+  args: string[];
+} {
+  const npmExecPath = process.env.npm_execpath;
+
+  if (npmExecPath && path.basename(npmExecPath).includes("pnpm")) {
+    return {
+      command: process.execPath,
+      args: [npmExecPath, ...args],
+    };
+  }
+
+  return {
+    command: "pnpm",
+    args,
+  };
 }
 
 function buildSedimentationLogLines(params: HelperOutput): string[] {
