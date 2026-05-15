@@ -92,3 +92,4 @@ Branch/worktree:
 - Stop-hook first rerun: verifier passed, reviewer failed because the harness relied on scripted reply text for read-back evidence and the demo command did not throw on failed criteria.
 - Reviewer fix: added mechanical assertions that `files_read_all` returns `classes/class_001/students/stu_001/parent-observations/2026-06.md` with appended content/frontmatter, and made `pnpm demo:capability-harness` throw on any failed acceptance criterion.
 - Post-reviewer-fix checks: `pnpm typecheck`, `pnpm vitest run tests/claw-agent-capability-harness.test.ts`, `pnpm demo:capability-harness`, and `pnpm test` all passed.
+- Final Stop-hook quality gate: reviewer PASS and verifier PASS for task `0011-local-openclaw-capability-harness`; TPR created PR https://github.com/Leonxu6/school-claw/pull/17.
