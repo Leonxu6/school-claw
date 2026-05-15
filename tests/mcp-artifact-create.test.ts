@@ -6,6 +6,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -180,6 +181,103 @@ describe("CLAW MCP artifact_create tool", () => {
         "content",
         "sourceFileIds",
       ]);
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("loads an external scope registry from env for a live Feishu teacher session", async () => {
+    const liveTeacherSsid = "agent:claw-agent:feishu:direct:live-teacher-openid";
+    const registryPath = path.join(scratchRoot, "scope-registry.local.json");
+
+    writeFileSync(
+      registryPath,
+      JSON.stringify(
+        {
+          parents: [],
+          students: [
+            {
+              studentId: "stu_001",
+              displayName: "张三",
+            },
+          ],
+          teachers: [
+            {
+              teacherId: "teacher_live",
+              displayName: "现场老师",
+            },
+          ],
+          sessions: [
+            {
+              ssid: liveTeacherSsid,
+              ssidHash: "live_teacher_hash",
+              role: "teacher",
+              status: "active",
+              platform: "feishu",
+              peerKind: "direct",
+              peerId: "live-teacher-openid",
+              classId: "class_001",
+              teacherId: "teacher_live",
+              studentIds: ["*"],
+              readRoots: ["classes/class_001"],
+              writeRoots: ["classes/class_001"],
+              capabilities: ["read_class", "write_class", "create_class_artifact"],
+              displayName: "现场老师",
+              createdAt: "2026-05-15T00:00:00.000Z",
+              updatedAt: "2026-05-15T00:00:00.000Z",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const config = createClawAgentOpenClawConfig({ repoRoot, dataRoot });
+    const client = await connectClawMcpClient({
+      serverName: "claw",
+      server: {
+        ...config.mcp.servers.claw,
+        env: {
+          ...config.mcp.servers.claw.env,
+          CLAW_SCOPE_REGISTRY_PATH: registryPath,
+          CLAW_NOW: fixedNow,
+        },
+      },
+    });
+
+    try {
+      await expect(
+        client.callJsonTool("scope_get", {
+          ssid: liveTeacherSsid,
+        }),
+      ).resolves.toMatchObject({
+        ok: true,
+        scope: {
+          role: "teacher",
+          displayName: "现场老师",
+        },
+      });
+
+      const append = await client.callJsonTool<{
+        ok: true;
+        fileId: string;
+      }>("files_append", {
+        ssid: liveTeacherSsid,
+        target: {
+          kind: "teacher_observation",
+          studentId: "stu_001",
+          month: "2026-05",
+        },
+        content: "张三今天应用题单位一判断仍不稳定，需要下一节课继续追问。",
+        reason: "live teacher registry smoke",
+      });
+
+      expect(append).toMatchObject({
+        ok: true,
+        fileId: "classes/class_001/students/stu_001/teacher-observations/2026-05.md",
+      });
+      expect(readAuditEntries().join("\n")).toContain("action: files_append");
     } finally {
       await client.close();
     }

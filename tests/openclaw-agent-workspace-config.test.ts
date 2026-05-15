@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLAW_AGENT_ID,
+  CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
   CLAW_SCOPE_BRIDGE_PLUGIN_ID,
   TSX_ESM_LOADER_PATH,
   createLoadableClawAgentOpenClawConfig,
@@ -82,8 +83,11 @@ describe("OpenClaw claw-agent workspace config", () => {
       workspace: path.join(repoRoot, "workspaces", CLAW_AGENT_ID),
       systemPromptOverride: expect.stringContaining(prompt),
       tools: {
-        profile: "messaging",
-        allow: ["bundle-mcp", "message", "session_status"],
+        allow: [
+          ...CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
+          "message",
+          "session_status",
+        ],
       },
     });
     expect(agent?.systemPromptOverride).toContain(workspaceContract);
@@ -190,6 +194,9 @@ describe("OpenClaw claw-agent workspace config", () => {
       configSchema: {
         additionalProperties: false,
       },
+      contracts: {
+        tools: CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
+      },
     });
     expect(existsSync(path.join(pluginRoot, "package.json"))).toBe(true);
     expect(existsSync(path.join(pluginRoot, "index.ts"))).toBe(true);
@@ -253,8 +260,10 @@ describe("OpenClaw claw-agent workspace config", () => {
             (async () => {
               const plugin = await import(${JSON.stringify(pluginIndexPath)});
               const registered = [];
+              const registeredTools = [];
               plugin.default.register({
                 on: (...args) => registered.push(args),
+                registerTool: (...args) => registeredTools.push(args),
               });
               const [hookName, handler, options] = registered[0] ?? [];
               const bridged = handler(
@@ -279,6 +288,7 @@ describe("OpenClaw claw-agent workspace config", () => {
                 id: plugin.default.id,
                 hookName,
                 options,
+                registeredToolNames: registeredTools[0]?.[1]?.names,
                 bridged,
                 blocked,
                 ignored,
@@ -295,6 +305,7 @@ describe("OpenClaw claw-agent workspace config", () => {
         id: string;
         hookName: string;
         options: { priority: number };
+        registeredToolNames: string[];
         bridged: {
           params: {
             ssid: string;
@@ -311,6 +322,7 @@ describe("OpenClaw claw-agent workspace config", () => {
         id: CLAW_SCOPE_BRIDGE_PLUGIN_ID,
         hookName: "before_tool_call",
         options: { priority: 100 },
+        registeredToolNames: CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
         bridged: {
           params: {
             ssid: "trusted-session",

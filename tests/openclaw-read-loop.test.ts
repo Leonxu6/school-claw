@@ -10,6 +10,7 @@ import {
   TSX_ESM_LOADER_PATH,
   createClawAgentOpenClawConfig,
 } from "../src/openclaw/claw-agent-config.js";
+import { CLAW_NATIVE_OPENCLAW_TOOL_NAMES } from "../src/openclaw/native-tools.js";
 import {
   resolveQaChannelHelperInvocation,
   runOpenClawQaChannelReadLoopDemo,
@@ -34,7 +35,7 @@ const openclawQaChannelAvailable =
   existsSync("/Users/leon/openclaw/src/agents/pi-bundle-mcp-materialize.ts");
 
 describe("one-agent OpenClaw read loop", () => {
-  it("defines one claw-agent with runnable CLAW MCP access and no native data tools", () => {
+  it("defines one claw-agent with scoped CLAW access and no raw native data tools", () => {
     const config = createClawAgentOpenClawConfig({ repoRoot, dataRoot });
 
     expect(config.session.dmScope).toBe("per-channel-peer");
@@ -51,9 +52,14 @@ describe("one-agent OpenClaw read loop", () => {
       default: true,
       name: "CLAW Agent",
       tools: {
-        allow: ["bundle-mcp", "message", "session_status"],
+        allow: [
+          ...CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
+          "message",
+          "session_status",
+        ],
       },
     });
+    expect(agent?.tools.allow).not.toContain("bundle-mcp");
     expect(agent?.tools.deny).toEqual(
       expect.arrayContaining([
         "read",

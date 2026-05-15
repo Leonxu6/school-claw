@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { CLAW_NATIVE_OPENCLAW_TOOL_NAMES } from "./native-tools.js";
+
+export { CLAW_NATIVE_OPENCLAW_TOOL_NAMES };
+
 export const CLAW_AGENT_ID = "claw-agent";
 export const CLAW_SCOPE_BRIDGE_PLUGIN_ID = "claw-scope-bridge";
 export const TSX_ESM_LOADER_PATH = path.join(
@@ -46,7 +50,6 @@ export type ClawAgentOpenClawConfig = {
         workspace: string;
         systemPromptOverride: string;
         tools: {
-          profile: "messaging";
           allow: string[];
           deny: string[];
         };
@@ -195,8 +198,11 @@ export function createClawAgentOpenClawConfig(
           workspace: fromRepoRoot("workspaces", CLAW_AGENT_ID),
           systemPromptOverride,
           tools: {
-            profile: "messaging",
-            allow: ["bundle-mcp", "message", "session_status"],
+            allow: [
+              ...CLAW_NATIVE_OPENCLAW_TOOL_NAMES,
+              "message",
+              "session_status",
+            ],
             deny: [...NATIVE_DATA_TOOL_DENYLIST],
           },
         },

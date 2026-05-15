@@ -18,7 +18,8 @@
     "demo:scope-bridge": "tsx scripts/demo-scope-bridge.ts",
     "demo:openclaw-read": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-openclaw-read.ts",
     "demo:sedimentation": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-sedimentation.ts",
-    "demo:capability-harness": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-capability-harness.ts"
+    "demo:capability-harness": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-capability-harness.ts",
+    "validate:native-platform-binding": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/validate-native-platform-binding.ts"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
