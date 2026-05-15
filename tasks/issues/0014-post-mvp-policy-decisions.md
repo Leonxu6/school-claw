@@ -7,7 +7,7 @@ Suggested label: `ready-for-human`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 7.2.4, 9.6, 10.6, 12, and 16, plus `docs/architecture/CLAW_v1_technical_architecture.md` sections 9.9, 15.5, 16.7, 17 Phase 7, and 19.
+- Read first: `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 7.2.4, 9.6, 10.6, 12, and 16, plus `docs/architecture/CLAW_v1_technical_architecture.md` sections 9.9, 15.5, 16.7, 17 Phase 7, and 19.
 - Project summary: Batch parent messages and schedules are real product needs, but they create higher privacy and persistence risk than the MVP capability stack.
 - Capability: decide what enters post-MVP and under which safety model.
 - Non-negotiables: do not implement automatic parent sending or recurring jobs before this decision, prefer review-before-send, preserve role guards, and record decisions durably.

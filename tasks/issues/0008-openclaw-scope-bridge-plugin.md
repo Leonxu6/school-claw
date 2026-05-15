@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 4.7, 7.3, 9, 15.1, 16.1, and 19.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 4.7, 7.3, 9, 15.1, 16.1, and 19.
 - Project summary: Ordinary MCP tools do not automatically know the current OpenClaw session. The Scope Bridge Plugin injects the real `sessionKey`/`ssid` into CLAW MCP tool calls before execution.
 - Capability: enforce true session injection at the OpenClaw boundary.
 - Non-negotiables: overwrite forged `ssid`, affect only CLAW MCP tools, fail closed on missing session, and verify against current OpenClaw plugin APIs.
@@ -19,7 +19,7 @@ Implement the thin Scope Bridge Plugin against the pinned OpenClaw plugin contra
 
 ## Acceptance criteria
 
-- [ ] Failing tests exist first for forged `ssid`, missing session, and non-CLAW tool calls.
+- [ ] Forged `ssid`, missing session, and non-CLAW tool calls are covered by repeatable plugin checks.
 - [ ] `claw__*` tool calls receive the real OpenClaw session key as `ssid`.
 - [ ] Model-supplied `ssid` is overwritten.
 - [ ] Missing session context blocks the tool call.

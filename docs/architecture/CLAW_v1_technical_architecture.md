@@ -451,7 +451,6 @@ Markdown scope = 能访问的数据
 
 ```text
 workspaces/claw-agent/
-  AGENTS.md
   IDENTITY.md
   USER.md
   BOOTSTRAP.md
@@ -1849,4 +1848,3 @@ CLAW v1 MVP 可以上线试点的最低标准：
 - OpenClaw Feishu 文档：bot DMs + group chats production-ready。
 - OpenClaw QQ Bot 文档：支持 C2C private chat、group、guild。
 - OpenClaw WeChat 文档：外部插件支持 direct chats，群聊能力未作为当前能力重点。
-

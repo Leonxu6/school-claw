@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/development/CLAW_v1_development_plan.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 12, 15, and 18.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/development/CLAW_v1_development_plan.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 12, 15, and 18.
 - Project summary: By this point, school-claw should have reusable capabilities. This issue proves them through acceptance scenarios without hard-coding those scenarios into implementation.
 - Capability: local integration harness that runs OpenClaw + CLAW MCP + Scope Bridge + one `claw-agent` against fixture data.
 - Non-negotiables: scenarios are tests only, no scenario-specific application code, all failures should point to missing general capability, and tests must cover forbidden access.

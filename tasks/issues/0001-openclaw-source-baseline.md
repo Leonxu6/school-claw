@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 4, 5, 9, 10, 15, 16, 19, and 20.
+- Read first: `CONTEXT.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 4, 5, 9, 10, 15, 16, 19, and 20.
 - External source to verify: `https://github.com/openclaw/openclaw` and `https://docs.openclaw.ai`.
 - Project summary: CLAW v1 is built on OpenClaw. OpenClaw owns Gateway routing, sessions, Pi Runtime, model/tool loop, plugin hooks, and MCP materialization. school-claw must not guess these APIs.
 - Capability: establish the OpenClaw source checkout and runtime contract baseline for all later work.

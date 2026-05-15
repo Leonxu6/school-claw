@@ -9,10 +9,10 @@ They are not yet published to GitHub because the local machine does not currentl
 Each numbered issue file is intended to be self-contained. When opening a fresh agent window, give it exactly one issue file and tell it:
 
 ```text
-Work in /Users/leon/school-claw. Read this issue file first and follow its Fresh-agent brief. Do not rely on prior chat context. Follow AGENTS.md, start with tests for AFK issues, and stop if blocked by a referenced draft issue that is not complete.
+Work in /Users/leon/school-claw. Read this issue file first and follow its Fresh-agent brief. Do not rely on prior chat context. Implement the smallest change that satisfies the issue's acceptance criteria, then let the global reviewer/verifier gates decide whether it is ready for TPR. Stop if blocked by a referenced draft issue that is not complete.
 ```
 
-The fresh agent should still read the files listed in the issue's `Fresh-agent brief`, especially `AGENTS.md`, `CONTEXT.md`, the OpenClaw baseline, and the referenced PRD/architecture sections.
+The fresh agent should still read the files listed in the issue's `Fresh-agent brief`, especially `CONTEXT.md`, the OpenClaw baseline, and the referenced PRD/architecture sections.
 
 ## Planning Rule
 

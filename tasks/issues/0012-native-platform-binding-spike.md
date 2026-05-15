@@ -7,7 +7,7 @@ Suggested label: `ready-for-human`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 6, 7, 12.6, 15.5, and 16.2.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 6, 7, 12.6, 15.5, and 16.2.
 - Project summary: CLAW must eventually run through a real native messaging platform. The architecture should depend only on stable peer IDs and authorization binding, not on unproven invite-token behavior.
 - Capability: validate real private-chat entry, stable peer identity, and first-time binding flow.
 - Non-negotiables: do not weaken data permissions for platform convenience, do not assume QR/invite tokens work without proof, and do not turn platform peer ID into authentication by itself.

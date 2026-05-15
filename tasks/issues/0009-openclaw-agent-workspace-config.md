@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 5.3, 5.4, 10, 11, 16.7, and 19.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 5.3, 5.4, 10, 11, 16.7, and 19.
 - Project summary: CLAW v1 uses one `claw-agent`. Parents and teachers are sessions with different scopes, not separate agents. The agent workspace must not contain student data.
 - Capability: create OpenClaw config/workspace assets that run one agent with only the intended MCP/tool surface.
 - Non-negotiables: do not create parent-agent/teacher-agent, do not put `claw-data` in the agent workspace, deny native file/exec/gateway/cron tools unless explicitly needed, and allow only `bundle-mcp` plus required messaging.

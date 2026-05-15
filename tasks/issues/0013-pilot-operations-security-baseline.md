@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 15.5, 16, 18, and 19.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, `docs/architecture/CLAW_v1_technical_architecture.md` sections 15.5, 16, 18, and 19.
 - Project summary: Once capabilities work locally and on a native platform, the pilot needs operational controls: startup, config safety, logs, audit review, backup, and incident checks.
 - Capability: make CLAW v1 operable for a small real-class pilot.
 - Non-negotiables: no silent production config changes, no broad native tools, no missing audit review path, and no undocumented restart/recovery process.
