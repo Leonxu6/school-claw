@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 7.1-7.2, 9.1, and 15.1.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 7.1-7.2, 9.1, and 15.1.
 - Project summary: CLAW maps an OpenClaw session key (`ssid`) to a `SessionScope`. This issue creates the first runnable school-claw loop, but only for scope resolution.
 - Capability: local test harness + `scope_get` primitive.
 - Non-negotiables: no student file reads yet, no teacher/parent scenario behavior, no OpenClaw runtime dependency unless the baseline supports it cleanly.
@@ -36,7 +36,7 @@ Create the minimal school-claw project scaffold needed for tests and a local sco
 
 ## Acceptance criteria
 
-- [x] Tests are written first for parent, teacher, unknown, and disabled sessions.
+- [x] Parent, teacher, unknown, and disabled sessions are covered by repeatable checks.
 - [x] Project test command is documented and passes.
 - [x] Fixture registry includes at least two parents, two students, and one teacher.
 - [x] `scope_get` returns safe display fields only: role, class ID, visible student IDs, capabilities, and display name.

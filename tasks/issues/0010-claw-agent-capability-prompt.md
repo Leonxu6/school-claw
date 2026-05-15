@@ -7,7 +7,7 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 6-13, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 11, 12, 14, 16.4, and 19.
+- Read first: `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 6-13, and `docs/architecture/CLAW_v1_technical_architecture.md` sections 11, 12, 14, 16.4, and 19.
 - Project summary: `claw-agent` should have general education-agent behavior. It reads scope, reads evidence, decides whether to append durable facts, creates artifacts, and refuses overreach. It should not be prompted as a bag of hard-coded scenarios.
 - Capability: define the reusable behavior contract for the single agent.
 - Non-negotiables: no scenario-specific tool names, no fabricated student history, no prompt-only permission claims, and no medical/psychological diagnosis.

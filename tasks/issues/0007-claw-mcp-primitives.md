@@ -7,10 +7,10 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` section 9.
+- Read first: `CONTEXT.md`, `docs/development/openclaw-baseline.md`, and `docs/architecture/CLAW_v1_technical_architecture.md` section 9.
 - Project summary: CLAW exposes primitive MCP tools. The agent composes these tools into education tasks; the tools themselves should not be scenario-specific.
 - Capability: provide the complete v1 MCP surface backed by scope, archive, permission, write, artifact, and audit modules.
-- Non-negotiables: no task tools like `generate_practice`, no trusting model-supplied `ssid`, no arbitrary paths, and schema tests first.
+- Non-negotiables: no task tools like `generate_practice`, no trusting model-supplied `ssid`, no arbitrary paths, and repeatable schema contract checks.
 - Expected handoff result: a testable MCP server exposing the v1 primitive tools with clear error codes.
 
 ## What to build
@@ -28,7 +28,7 @@ Implement the CLAW MCP Server and primitive tools:
 
 ## Acceptance criteria
 
-- [ ] Tool schema tests are written first.
+- [ ] Tool schemas are covered by repeatable contract checks.
 - [ ] Each tool accepts optional `ssid` but treats it as injected context, not trusted user authority.
 - [ ] `scope_get` returns only safe display scope fields.
 - [ ] File tools enforce `SessionScope` and file ID guards.

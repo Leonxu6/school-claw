@@ -7,10 +7,10 @@ Suggested label: `ready-for-agent`
 ## Fresh-agent brief
 
 - Working directory: `/Users/leon/school-claw`.
-- Read first: `AGENTS.md`, `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 6, 10, and 15.3, plus `docs/architecture/CLAW_v1_technical_architecture.md` section 8.
+- Read first: `CONTEXT.md`, `docs/product/CLAW_v1_product_prd.md` sections 6, 10, and 15.3, plus `docs/architecture/CLAW_v1_technical_architecture.md` section 8.
 - Project summary: The Markdown file database is CLAW v1's source of truth. It stores class data, student learning archives, observations, artifacts, registry records, and audit logs.
 - Capability: create the durable archive structure and schema helpers that all MCP tools will use.
-- Non-negotiables: no model/agent behavior here, no arbitrary absolute paths, no scenario-specific files beyond representative fixtures, and tests first.
+- Non-negotiables: no model/agent behavior here, no arbitrary absolute paths, no scenario-specific files beyond representative fixtures, and repeatable verification checks.
 - Expected handoff result: a reusable Markdown archive module with fixtures for one class, two students, two parents, and one teacher.
 
 ## What to build
@@ -19,7 +19,7 @@ Implement the core Markdown archive structure and helpers: front matter parsing/
 
 ## Acceptance criteria
 
-- [ ] Tests are written first for parsing and loading representative archive files.
+- [ ] Parsing and loading representative archive files are covered by repeatable checks.
 - [ ] Fixtures include one class, two students, two parent registry entries, one teacher registry entry, and session registry records.
 - [ ] Student archives include profile, knowledge, timeline/errors/observations, and artifacts directories or equivalents from the architecture.
 - [ ] Front matter round-trips without dropping required fields.

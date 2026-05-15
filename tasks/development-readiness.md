@@ -65,4 +65,4 @@ Before publishing issues to GitHub:
 - Enforce parent isolation at the MCP/data layer, not only in prompts.
 - All write paths must produce audit records.
 - Prefer append-only records until a slice explicitly needs controlled replacement.
-- Every AFK issue starts with a failing test and ends with relevant tests passing.
+- Every AFK issue starts with accepted behavior and a verification path, then ends with the real user/agent path and relevant supporting checks passing.

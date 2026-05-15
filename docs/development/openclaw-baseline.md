@@ -296,11 +296,10 @@ CLAW implication:
 For issue `0002-local-claw-scope-harness-loop.md`, read:
 
 1. This file.
-2. `AGENTS.md`.
-3. `CONTEXT.md`.
-4. `docs/architecture/CLAW_v1_technical_architecture.md` sections 5, 8, 9,
+2. `CONTEXT.md`.
+3. `docs/architecture/CLAW_v1_technical_architecture.md` sections 5, 8, 9,
    15, and 19.
-5. OpenClaw files listed under "Source Checkout" and "Contract Map" that match
+4. OpenClaw files listed under "Source Checkout" and "Contract Map" that match
    the capability being scaffolded.
 
 ## Baseline Decisions
