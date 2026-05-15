@@ -357,6 +357,33 @@ describe("safe write and audit loop", () => {
     expect(readAuditEntry(append.auditId)).toContain("action: files_append");
   });
 
+  it("rejects teacher writes for unknown student ids instead of creating new student directories", async () => {
+    const unknownStudentDir = path.join(
+      dataRoot,
+      "classes/class_001/students/zhang_san",
+    );
+
+    const error = expectError(
+      await filesAppend(
+        {
+          ssid: teacherSsid,
+          target: {
+            kind: "teacher_observation",
+            studentId: "zhang_san",
+            month: "2026-05",
+          },
+          content: "- 不应写入：模型猜测出来的学生 ID。",
+          reason: "teacher must use roster student ids",
+        },
+        { dataRoot },
+      ),
+    );
+
+    expect(error.code).toBe("FORBIDDEN");
+    expect(existsSync(unknownStudentDir)).toBe(false);
+    expect(readAuditEntries()).toEqual([]);
+  });
+
   it("creates and replaces only controlled write files with audit", async () => {
     const fileId =
       "classes/class_001/students/stu_001/artifacts/2026-05-13-practice.md";

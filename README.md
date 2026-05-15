@@ -73,6 +73,14 @@ parent cross-student journey refused after scope
 teacher error-table journey used artifact_create
 ```
 
+Validate native platform binding evidence captured during the issue 12 Feishu/Lark HITL smoke:
+
+```sh
+pnpm validate:native-platform-binding /path/to/0012-native-platform-binding-evidence.local.json
+```
+
+Start from `docs/development/0012-native-platform-binding-evidence.template.json`; the template intentionally fails until real platform evidence is filled in.
+
 Run the scope demo:
 
 ```sh

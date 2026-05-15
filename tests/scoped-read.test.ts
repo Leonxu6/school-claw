@@ -88,6 +88,14 @@ describe("scoped Markdown read loop", () => {
     expect(error.code).toBe("FORBIDDEN");
   });
 
+  it("returns FORBIDDEN when a teacher lists an unknown student id", () => {
+    const error = expectError(
+      filesList({ ssid: teacherSsid, studentId: "zhang_san" }, { dataRoot }),
+    );
+
+    expect(error.code).toBe("FORBIDDEN");
+  });
+
   it("filters parent-visible observation files by kind", () => {
     const files = expectFiles(
       filesList({ ssid: parentASsid, kind: "observations" }, { dataRoot }),

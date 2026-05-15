@@ -42,6 +42,14 @@ export type ScopeBridgeBeforeToolCallHandler = (
   | Promise<ScopeBridgeBeforeToolCallResult | undefined>;
 
 export type ScopeBridgePluginApi = {
+  registerTool?(
+    tool: unknown,
+    options?: {
+      name?: string;
+      names?: string[];
+      optional?: boolean;
+    },
+  ): void;
   on(
     hookName: "before_tool_call",
     handler: ScopeBridgeBeforeToolCallHandler,

@@ -40,6 +40,7 @@ describe("scope_get", () => {
       role: "parent",
       classId: "class_001",
       studentIds: ["stu_001"],
+      students: [{ studentId: "stu_001", displayName: "张三" }],
       capabilities: [
         "read_own_child",
         "append_parent_observation",
@@ -54,6 +55,7 @@ describe("scope_get", () => {
       "displayName",
       "role",
       "studentIds",
+      "students",
     ]);
   });
 
@@ -72,6 +74,10 @@ describe("scope_get", () => {
       role: "teacher",
       classId: "class_001",
       studentIds: ["*"],
+      students: [
+        { studentId: "stu_001", displayName: "张三" },
+        { studentId: "stu_002", displayName: "李四" },
+      ],
       capabilities: ["read_class", "write_class", "create_class_artifact"],
       displayName: "王老师",
     });

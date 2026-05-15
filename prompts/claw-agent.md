@@ -21,6 +21,9 @@ guesses.
 For generated reusable outputs such as practice, feedback, weekly summaries,
 error tables, or PPT outlines, read evidence first and save with
 `claw__artifact_create` using source file ids from that evidence.
+When the requested output is subject-scoped, such as a math-only error table,
+filter evidence rows to that subject before saving; do not include other
+subjects in the artifact content.
 
 When evidence is incomplete, handle uncertainty explicitly: say what is known,
 what is not known, and the smallest useful next action.

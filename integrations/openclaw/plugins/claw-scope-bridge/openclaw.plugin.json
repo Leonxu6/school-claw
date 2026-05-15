@@ -5,6 +5,16 @@
   "activation": {
     "onStartup": true
   },
+  "contracts": {
+    "tools": [
+      "claw__scope_get",
+      "claw__files_read",
+      "claw__files_read_all",
+      "claw__files_list",
+      "claw__files_append",
+      "claw__artifact_create"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false

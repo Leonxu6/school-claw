@@ -26,15 +26,21 @@ import {
   type FilesAppendRequest,
   type FilesAppendTarget,
 } from "../archive/write-audit.js";
-import { scopeGet, type ScopeGetRequest } from "../scope/scope-get.js";
+import {
+  loadScopeRegistryFromFile,
+  scopeGet,
+  type FixtureRegistry,
+  type ScopeGetRequest,
+} from "../scope/scope-get.js";
 
-type ClawMcpServerOptions = {
+export type ClawMcpServerOptions = {
   dataRoot: string;
+  registry?: FixtureRegistry;
   tracePath?: string | undefined;
   now?: () => Date;
 };
 
-type ToolResultPayload = Record<string, unknown>;
+export type ToolResultPayload = Record<string, unknown>;
 
 const MCP_SERVER_NAME = "school-claw-mcp";
 const MCP_SERVER_VERSION = "0.0.0";
@@ -285,34 +291,42 @@ export async function connectClawMcpServerToStdio(server: Server): Promise<void>
   await server.connect(transport);
 }
 
-async function callClawTool(
+export async function callClawTool(
   toolName: string,
   toolArguments: Record<string, unknown>,
   options: ClawMcpServerOptions,
 ): Promise<ToolResultPayload> {
   switch (toolName) {
     case "scope_get":
-      return scopeGet(scopeGetRequest(toolArguments)) as unknown as ToolResultPayload;
+      return scopeGet(
+        scopeGetRequest(toolArguments),
+        options.registry,
+      ) as unknown as ToolResultPayload;
     case "files_read":
       return filesRead(filesReadRequest(toolArguments), {
         dataRoot: options.dataRoot,
+        ...(options.registry ? { registry: options.registry } : {}),
       }) as unknown as ToolResultPayload;
     case "files_read_all":
       return filesReadAll(filesReadAllRequest(toolArguments), {
         dataRoot: options.dataRoot,
+        ...(options.registry ? { registry: options.registry } : {}),
       }) as unknown as ToolResultPayload;
     case "files_list":
       return filesList(filesListRequest(toolArguments), {
         dataRoot: options.dataRoot,
+        ...(options.registry ? { registry: options.registry } : {}),
       }) as unknown as ToolResultPayload;
     case "files_append":
       return (await filesAppend(filesAppendRequest(toolArguments), {
         dataRoot: options.dataRoot,
+        ...(options.registry ? { registry: options.registry } : {}),
         ...(options.now ? { now: options.now } : {}),
       })) as unknown as ToolResultPayload;
     case "artifact_create":
       return (await artifactCreate(artifactCreateRequest(toolArguments), {
         dataRoot: options.dataRoot,
+        ...(options.registry ? { registry: options.registry } : {}),
         ...(options.now ? { now: options.now } : {}),
       })) as unknown as ToolResultPayload;
     default:
@@ -556,6 +570,7 @@ function traceToolCall(params: {
 async function main(): Promise<void> {
   const dataRoot = process.env.CLAW_DATA_DIR;
   const nowIso = process.env.CLAW_NOW;
+  const registryPath = process.env.CLAW_SCOPE_REGISTRY_PATH;
 
   if (!dataRoot) {
     throw new Error("CLAW_DATA_DIR is required to start the CLAW MCP server.");
@@ -564,6 +579,7 @@ async function main(): Promise<void> {
   await connectClawMcpServerToStdio(
     createClawMcpServer({
       dataRoot,
+      ...(registryPath ? { registry: loadScopeRegistryFromFile(registryPath) } : {}),
       tracePath: process.env.CLAW_MCP_TRACE_PATH,
       ...(nowIso ? { now: () => new Date(nowIso) } : {}),
     }),

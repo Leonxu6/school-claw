@@ -1,0 +1,72 @@
+{
+  "evidenceKind": "native-platform-binding-spike/v1",
+  "captureMode": "template",
+  "capturedAt": "2026-05-15T00:00:00.000Z",
+  "candidate": {
+    "platform": "Feishu/Lark",
+    "channel": "feishu",
+    "channelPlugin": "@openclaw/feishu",
+    "transport": "websocket",
+    "dmScope": "per-channel-peer"
+  },
+  "accounts": [
+    {
+      "label": "account-a",
+      "peerKind": "direct",
+      "peerId": "replace-with-feishu-open-id-a",
+      "observations": [
+        {
+          "gatewayRun": "before-restart",
+          "messageText": "replace-with-first-private-chat-message",
+          "sessionKey": "agent:claw-agent:feishu:direct:replace-with-feishu-open-id-a",
+          "botReplyObserved": false
+        },
+        {
+          "gatewayRun": "before-restart",
+          "messageText": "replace-with-second-private-chat-message",
+          "sessionKey": "agent:claw-agent:feishu:direct:replace-with-feishu-open-id-a",
+          "botReplyObserved": false
+        },
+        {
+          "gatewayRun": "after-restart",
+          "messageText": "replace-with-post-restart-private-chat-message",
+          "sessionKey": "agent:claw-agent:feishu:direct:replace-with-feishu-open-id-a",
+          "botReplyObserved": false
+        }
+      ]
+    },
+    {
+      "label": "account-b",
+      "peerKind": "direct",
+      "peerId": "replace-with-feishu-open-id-b",
+      "observations": [
+        {
+          "gatewayRun": "before-restart",
+          "messageText": "replace-with-first-private-chat-message",
+          "sessionKey": "agent:claw-agent:feishu:direct:replace-with-feishu-open-id-b",
+          "botReplyObserved": false
+        },
+        {
+          "gatewayRun": "after-restart",
+          "messageText": "replace-with-post-restart-private-chat-message",
+          "sessionKey": "agent:claw-agent:feishu:direct:replace-with-feishu-open-id-b",
+          "botReplyObserved": false
+        }
+      ]
+    }
+  ],
+  "inviteToken": {
+    "status": "not_tested",
+    "reason": "replace with verified or unavailable after real platform smoke"
+  },
+  "authorizationCode": {
+    "specified": false,
+    "summary": "",
+    "steps": [],
+    "safeguards": []
+  },
+  "decision": {
+    "status": "pending",
+    "reasons": []
+  }
+}

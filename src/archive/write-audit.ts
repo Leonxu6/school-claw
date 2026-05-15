@@ -892,7 +892,15 @@ function isPathInsideOrEqual(targetPath: string, rootPath: string): boolean {
 }
 
 function scopeCanWriteStudent(scope: SessionScope, studentId: string): boolean {
-  return scope.studentIds.includes("*") || scope.studentIds.includes(studentId);
+  if (scope.studentIds.includes(studentId)) {
+    return true;
+  }
+
+  if (!scope.studentIds.includes("*")) {
+    return false;
+  }
+
+  return scope.knownStudentIds.includes(studentId);
 }
 
 function hasCapability(scope: SessionScope, capability: string): boolean {
