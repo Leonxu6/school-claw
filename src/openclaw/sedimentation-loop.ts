@@ -88,6 +88,8 @@ export type CapabilityHarnessDemo = {
   runtime: SedimentationRuntime;
   config: ClawAgentOpenClawConfig;
   runs: OpenClawPiSedimentationRun[];
+  parentObservationTurn: SedimentationTurn;
+  parentObservationFollowUpTurn: SedimentationTurn;
   parentPracticeTurn: SedimentationTurn;
   parentCrossStudentRefusalTurn: SedimentationTurn;
   teacherErrorTableTurn: SedimentationTurn;
@@ -257,6 +259,16 @@ export async function runCapabilityHarnessDemo(
     sessionKey: options.parentSessionKey,
     turns: [
       {
+        id: "learningFactTurn",
+        scenario: "learning_fact",
+        message: "孩子说今天数学应用题错了两道，因为没看清题目问的是什么。",
+      },
+      {
+        id: "followUpTurn",
+        scenario: "follow_up",
+        message: "刚才那条新记录说明了什么？",
+      },
+      {
         id: "parentPracticeTurn",
         scenario: "parent_practice_artifact",
         message: "请根据孩子最近的档案，给我一份今晚能做的数学练习。",
@@ -279,6 +291,8 @@ export async function runCapabilityHarnessDemo(
       },
     ],
   });
+  const parentObservationTurn = requireTurn(parentOutput, "learningFactTurn");
+  const parentObservationFollowUpTurn = requireTurn(parentOutput, "followUpTurn");
   const parentPracticeTurn = requireTurn(parentOutput, "parentPracticeTurn");
   const parentCrossStudentRefusalTurn = requireTurn(
     parentOutput,
@@ -290,6 +304,8 @@ export async function runCapabilityHarnessDemo(
     runtime: "openclaw-pi-runtime",
     config,
     runs: [...parentOutput.runs, ...teacherOutput.runs],
+    parentObservationTurn,
+    parentObservationFollowUpTurn,
     parentPracticeTurn,
     parentCrossStudentRefusalTurn,
     teacherErrorTableTurn,
@@ -300,6 +316,12 @@ export async function runCapabilityHarnessDemo(
       )
         ? "workspace AGENTS.md contract was injected"
         : "workspace AGENTS.md contract was missing",
+      parentObservationTurn.toolCalls.some((call) => call.toolName === "claw__files_append")
+        ? "parent observation journey used files_append"
+        : "parent observation journey did not use files_append",
+      parentObservationFollowUpTurn.reply.includes("没看清题目问的是什么")
+        ? "parent observation follow-up read back the appended record"
+        : "parent observation follow-up did not read back the appended record",
       parentPracticeTurn.toolCalls.some((call) => call.toolName === "claw__artifact_create")
         ? "parent practice artifact journey used artifact_create"
         : "parent practice artifact journey did not use artifact_create",
