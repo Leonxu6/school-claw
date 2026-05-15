@@ -18,7 +18,6 @@ import {
   runClawAgentReadTurn,
   runOneAgentOpenClawReadLoopDemo,
 } from "../src/openclaw/read-loop.js";
-import { canBindLoopback } from "./openclaw-e2e-availability.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const dataRoot = fileURLToPath(
@@ -28,9 +27,7 @@ const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const parentBSsid = "agent:claw-agent:qqbot:direct:parent-openid-002";
 const disabledParentSsid =
   "agent:claw-agent:qqbot:direct:disabled-parent-openid-001";
-const loopbackBindAvailable = canBindLoopback();
 const openclawQaChannelAvailable =
-  loopbackBindAvailable &&
   existsSync("/Users/leon/openclaw/extensions/qa-channel/src/inbound.ts") &&
   existsSync("/Users/leon/openclaw/extensions/qa-channel/api.ts") &&
   existsSync("/Users/leon/openclaw/extensions/qa-lab/bus-api.ts") &&
@@ -135,13 +132,14 @@ describe("one-agent OpenClaw read loop", () => {
 
   it("points at a prompt that requires scope before factual archive reads", () => {
     const config = createClawAgentOpenClawConfig({ repoRoot, dataRoot });
-    const prompt = readFileSync(config.agents.list[0]?.systemPromptOverride ?? "", "utf8");
+    const prompt = config.agents.list[0]?.systemPromptOverride ?? "";
 
     expect(prompt).toContain("one claw-agent");
     expect(prompt).toContain("claw__scope_get");
     expect(prompt).toContain("claw__files_read");
     expect(prompt).toContain("claw__files_read_all");
     expect(prompt).toContain("Do not use native file tools");
+    expect(prompt).not.toMatch(/prompts\/claw-agent\.md/u);
     expect(prompt.indexOf("claw__scope_get")).toBeLessThan(
       prompt.indexOf("claw__files_read"),
     );

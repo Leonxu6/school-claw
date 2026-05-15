@@ -18,7 +18,11 @@ import {
   type FilesReadRequest,
 } from "../archive/scoped-read.js";
 import {
+  artifactCreate,
   filesAppend,
+  type ArtifactCreateRequest,
+  type ArtifactFormat,
+  type ArtifactType,
   type FilesAppendRequest,
   type FilesAppendTarget,
 } from "../archive/write-audit.js";
@@ -43,6 +47,15 @@ const fileKindValues: FileKind[] = [
   "artifacts",
   "class",
 ];
+const artifactTypeValues: ArtifactType[] = [
+  "brief",
+  "practice",
+  "feedback",
+  "weekly_summary",
+  "ppt_outline",
+  "error_table",
+];
+const artifactFormatValues: ArtifactFormat[] = ["markdown", "csv", "ppt_outline"];
 
 export function createClawMcpServer(options: ClawMcpServerOptions): Server {
   const server = new Server(
@@ -69,7 +82,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "string",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -91,7 +103,7 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid", "fileIds"],
+          required: ["fileIds"],
         },
       },
       {
@@ -126,7 +138,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -158,7 +169,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -204,7 +214,49 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "string",
             },
           },
-          required: ["ssid", "target", "content", "reason"],
+          required: ["target", "content", "reason"],
+        },
+      },
+      {
+        name: "artifact_create",
+        description: "Create an audited generated CLAW artifact from readable source files.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ssid: {
+              type: "string",
+            },
+            artifactType: {
+              type: "string",
+              enum: artifactTypeValues,
+            },
+            title: {
+              type: "string",
+            },
+            studentId: {
+              type: "string",
+            },
+            format: {
+              type: "string",
+              enum: artifactFormatValues,
+            },
+            content: {
+              type: "string",
+            },
+            sourceFileIds: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+            },
+          },
+          required: [
+            "artifactType",
+            "title",
+            "format",
+            "content",
+            "sourceFileIds",
+          ],
         },
       },
     ],
@@ -255,6 +307,11 @@ async function callClawTool(
       }) as unknown as ToolResultPayload;
     case "files_append":
       return (await filesAppend(filesAppendRequest(toolArguments), {
+        dataRoot: options.dataRoot,
+        ...(options.now ? { now: options.now } : {}),
+      })) as unknown as ToolResultPayload;
+    case "artifact_create":
+      return (await artifactCreate(artifactCreateRequest(toolArguments), {
         dataRoot: options.dataRoot,
         ...(options.now ? { now: options.now } : {}),
       })) as unknown as ToolResultPayload;
@@ -345,6 +402,30 @@ function filesAppendRequest(toolArguments: Record<string, unknown>): FilesAppend
 
   if (frontmatter !== undefined) {
     request.frontmatter = frontmatter;
+  }
+
+  return request;
+}
+
+function artifactCreateRequest(
+  toolArguments: Record<string, unknown>,
+): ArtifactCreateRequest {
+  const request: ArtifactCreateRequest = {
+    artifactType: (optionalString(toolArguments.artifactType) ?? "") as ArtifactType,
+    title: optionalString(toolArguments.title) ?? "",
+    format: (optionalString(toolArguments.format) ?? "") as ArtifactFormat,
+    content: optionalString(toolArguments.content) ?? "",
+    sourceFileIds: stringArray(toolArguments.sourceFileIds),
+  };
+  const ssid = optionalString(toolArguments.ssid);
+  const studentId = optionalString(toolArguments.studentId);
+
+  if (ssid !== undefined) {
+    request.ssid = ssid;
+  }
+
+  if (studentId !== undefined) {
+    request.studentId = studentId;
   }
 
   return request;

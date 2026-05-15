@@ -1,6 +1,5 @@
-import http from "node:http";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm, mkdir } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -28,7 +27,14 @@ type HelperInput = {
   forgedSsid?: string;
   nowIso?: string;
   turns: Array<{
-    id: "learningFactTurn" | "followUpTurn" | "idleTurn" | "forgedSsidTurn";
+    id:
+      | "learningFactTurn"
+      | "followUpTurn"
+      | "idleTurn"
+      | "forgedSsidTurn"
+      | "parentPracticeTurn"
+      | "parentCrossStudentRefusalTurn"
+      | "teacherErrorTableTurn";
     scenario: SedimentationScenario;
     message: string;
   }>;
@@ -69,6 +75,7 @@ type AssistantToolCallBlock = {
 type ActiveTurn = HelperInput["turns"][number] & {
   step: number;
   requestToolNames: string[][];
+  requestContractInjected: boolean[];
 };
 
 const input = JSON.parse(readFileSync(0, "utf8")) as HelperInput;
@@ -82,7 +89,7 @@ const { runEmbeddedPiAgent } = (await import(
   runEmbeddedPiAgent: RunEmbeddedPiAgent;
 };
 
-const modelServer = await startDeterministicResponsesServer({
+const modelServer = installDeterministicResponsesFetch({
   sessionKey: input.sessionKey,
   ...(input.forgedSsid ? { forgedSsid: input.forgedSsid } : {}),
   ...(input.nowIso ? { nowIso: input.nowIso } : {}),
@@ -94,6 +101,9 @@ const sessionFile = path.join(tempRoot, "session.jsonl");
 
 await mkdir(agentDir, { recursive: true });
 await mkdir(workspaceDir, { recursive: true });
+await cp(path.join(input.repoRoot, "workspaces", CLAW_AGENT_ID), workspaceDir, {
+  recursive: true,
+});
 
 try {
   const schoolConfig = createClawAgentOpenClawConfig({
@@ -136,6 +146,7 @@ try {
         "claw__scope_get",
         "claw__files_append",
         "claw__files_read_all",
+        "claw__artifact_create",
       ],
       promptMode: "minimal",
       skillsSnapshot: {
@@ -143,7 +154,7 @@ try {
         skills: [],
         resolvedSkills: [],
       },
-      bootstrapContextMode: "lightweight",
+      bootstrapContextMode: "full",
     });
     const afterEntries = await readSessionEntries(sessionFile);
     const turnEntries = afterEntries.slice(beforeEntries.length);
@@ -176,6 +187,7 @@ try {
       ...(result.meta.stopReason ? { stopReason: result.meta.stopReason } : {}),
       durationMs: result.meta.durationMs,
       requestToolNames: modelServer.consumeRequestToolNames(turn.id),
+      workspaceContractInjected: modelServer.consumeRequestContractInjected(turn.id),
     });
   }
 
@@ -187,10 +199,16 @@ try {
       followUpTurn: turns.followUpTurn,
       idleTurn: turns.idleTurn,
       forgedSsidTurn: turns.forgedSsidTurn,
+      parentPracticeTurn: turns.parentPracticeTurn,
+      parentCrossStudentRefusalTurn: turns.parentCrossStudentRefusalTurn,
+      teacherErrorTableTurn: turns.teacherErrorTableTurn,
       logLines: [
         "OpenClaw Pi Runtime runEmbeddedPiAgent executed claw-agent turns",
         `${schoolConfig.openclawRuntime.checkoutPath}: OpenClaw Pi Runtime checkout`,
         "OpenClaw bundle MCP materialized CLAW MCP tools through Scope Bridge",
+        runs.every((run) => run.workspaceContractInjected)
+          ? "workspace AGENTS.md contract was injected"
+          : "workspace AGENTS.md contract was missing",
         "real CLAW MCP server handled scope_get/files_append/files_read_all",
         "files_append writes scoped observation",
         "audit entry appears",
@@ -280,83 +298,115 @@ function nodeWithTsxLoaderCommand(repoRoot: string, args: string[]): {
   };
 }
 
-async function startDeterministicResponsesServer(params: {
+function installDeterministicResponsesFetch(params: {
   sessionKey: string;
   forgedSsid?: string;
   nowIso?: string;
-}): Promise<{
+}): {
   baseUrl: string;
   activateTurn(turn: HelperInput["turns"][number]): void;
   consumeRequestToolNames(turnId: string): string[][];
+  consumeRequestContractInjected(turnId: string): boolean;
   stop(): Promise<void>;
-}> {
+} {
   let activeTurn: ActiveTurn | undefined;
   const requestToolNamesByTurn = new Map<string, string[][]>();
-  const server = http.createServer((request, response) => {
-    let body = "";
+  const requestContractInjectedByTurn = new Map<string, boolean[]>();
+  const originalFetch = globalThis.fetch;
+  const deterministicFetch: typeof fetch = async (request, init) => {
+    const url = request instanceof Request ? request.url : String(request);
 
-    request.on("data", (chunk: Buffer) => {
-      body += chunk.toString("utf8");
-    });
-    request.on("end", () => {
-      if (!activeTurn) {
-        response.writeHead(500, { "content-type": "application/json" });
-        response.end(JSON.stringify({ error: "No active sedimentation turn." }));
-        return;
-      }
+    if (!url.endsWith("/v1/responses")) {
+      return await originalFetch(request, init);
+    }
 
-      const parsed = body ? (JSON.parse(body) as Record<string, unknown>) : {};
-      const toolNames = readRequestToolNames(parsed);
-      activeTurn.requestToolNames.push(toolNames);
-      requestToolNamesByTurn.set(activeTurn.id, activeTurn.requestToolNames);
+    if (!activeTurn) {
+      return Response.json({ error: "No active sedimentation turn." }, { status: 500 });
+    }
 
-      response.writeHead(200, {
-        "content-type": "text/event-stream",
+    const body = await readFetchBody(request, init);
+    const parsed = body ? (JSON.parse(body) as Record<string, unknown>) : {};
+    const toolNames = readRequestToolNames(parsed);
+    const contractInjected = requestContainsWorkspaceContract(parsed);
+    activeTurn.requestToolNames.push(toolNames);
+    activeTurn.requestContractInjected.push(contractInjected);
+    requestToolNamesByTurn.set(activeTurn.id, activeTurn.requestToolNames);
+    requestContractInjectedByTurn.set(activeTurn.id, activeTurn.requestContractInjected);
+
+    const events = nextResponseEvents(activeTurn, params)
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join("");
+
+    return new Response(`${events}data: [DONE]\n\n`, {
+      status: 200,
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
         "cache-control": "no-cache",
-        connection: "keep-alive",
-      });
-      for (const event of nextResponseEvents(activeTurn, params)) {
-        response.write(`data: ${JSON.stringify(event)}\n\n`);
-      }
-      response.write("data: [DONE]\n\n");
-      response.end();
+      },
     });
-  });
+  };
 
-  await new Promise<void>((resolve) => {
-    server.listen(0, "127.0.0.1", resolve);
-  });
-
-  const address = server.address();
-
-  if (!address || typeof address === "string") {
-    throw new Error("OpenClaw Pi sedimentation model server did not bind to a TCP port.");
-  }
+  Object.assign(deterministicFetch, { mock: {} });
+  globalThis.fetch = deterministicFetch;
 
   return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
+    baseUrl: "http://127.0.0.1/v1",
     activateTurn(turn) {
       activeTurn = {
         ...turn,
         step: 0,
         requestToolNames: [],
+        requestContractInjected: [],
       };
     },
     consumeRequestToolNames(turnId) {
       return requestToolNamesByTurn.get(turnId) ?? [];
     },
+    consumeRequestContractInjected(turnId) {
+      return requestContractInjectedByTurn.get(turnId)?.some(Boolean) ?? false;
+    },
     async stop() {
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve();
-        });
-      });
+      globalThis.fetch = originalFetch;
     },
   };
+}
+
+async function readFetchBody(
+  request: RequestInfo | URL,
+  init: RequestInit | undefined,
+): Promise<string> {
+  if (request instanceof Request) {
+    return await request.clone().text();
+  }
+
+  const body = init?.body;
+
+  if (typeof body === "string") {
+    return body;
+  }
+
+  if (body instanceof Uint8Array) {
+    return Buffer.from(body).toString("utf8");
+  }
+
+  if (body && typeof (body as { getReader?: unknown }).getReader === "function") {
+    const reader = (body as ReadableStream<Uint8Array>).getReader();
+    const chunks: Uint8Array[] = [];
+
+    for (;;) {
+      const chunk = await reader.read();
+
+      if (chunk.done) {
+        break;
+      }
+
+      chunks.push(chunk.value);
+    }
+
+    return Buffer.concat(chunks).toString("utf8");
+  }
+
+  return "";
 }
 
 function nextResponseEvents(
@@ -446,6 +496,95 @@ function nextResponseEvents(
       });
     }
     return responseText(responseIndex, "安全探针完成。");
+  }
+
+  if (turn.scenario === "parent_practice_artifact") {
+    if (step === 0) {
+      return responseToolCall(responseIndex, "claw__scope_get", {
+        ssid: params.sessionKey,
+      });
+    }
+    if (step === 1) {
+      return responseToolCall(responseIndex, "claw__files_read_all", {
+        ssid: params.sessionKey,
+        studentId: "stu_001",
+        kinds: ["profile", "errors"],
+        maxFiles: 4,
+        maxTotalChars: 16_000,
+      });
+    }
+    if (step === 2) {
+      return responseToolCall(responseIndex, "claw__artifact_create", {
+        ssid: params.sessionKey,
+        artifactType: "practice",
+        title: "张三分数应用题练习",
+        studentId: "stu_001",
+        format: "markdown",
+        content: [
+          "# 张三分数应用题练习",
+          "",
+          "1. 先圈出单位一，再列式。",
+          "2. 做完后说清题目问什么。",
+          "",
+          "答案提示：先找总量，再判断对应分率。",
+        ].join("\n"),
+        sourceFileIds: [
+          "classes/class_001/students/stu_001/errors/2026-05.md",
+          "classes/class_001/students/stu_001/profile.md",
+        ],
+      });
+    }
+    return responseText(
+      responseIndex,
+      "已根据孩子自己的记录生成今晚练习，并保存为练习 artifact。",
+    );
+  }
+
+  if (turn.scenario === "parent_cross_student_refusal") {
+    if (step === 0) {
+      return responseToolCall(responseIndex, "claw__scope_get", {
+        ssid: params.sessionKey,
+      });
+    }
+    return responseText(responseIndex, "我只能回答您孩子的信息，不能查看其他学生。");
+  }
+
+  if (turn.scenario === "teacher_error_table_artifact") {
+    if (step === 0) {
+      return responseToolCall(responseIndex, "claw__scope_get", {
+        ssid: params.sessionKey,
+      });
+    }
+    if (step === 1) {
+      return responseToolCall(responseIndex, "claw__files_read_all", {
+        ssid: params.sessionKey,
+        kinds: ["class", "errors", "timeline"],
+        maxFiles: 20,
+        maxTotalChars: 30_000,
+      });
+    }
+    if (step === 2) {
+      return responseToolCall(responseIndex, "claw__artifact_create", {
+        ssid: params.sessionKey,
+        artifactType: "error_table",
+        title: "五年级一班本周数学错题表",
+        format: "markdown",
+        content: [
+          "# 五年级一班本周数学错题表",
+          "",
+          "| 知识点 | 典型错因 |",
+          "| --- | --- |",
+          "| 分数应用题 | 单位一不稳 |",
+          "| 英语听写 | 形近词混淆 |",
+        ].join("\n"),
+        sourceFileIds: [
+          "classes/class_001/class.md",
+          "classes/class_001/students/stu_001/errors/2026-05.md",
+          "classes/class_001/students/stu_002/errors/2026-05.md",
+        ],
+      });
+    }
+    return responseText(responseIndex, "已生成班级错题表 artifact，可直接给老师复用。");
   }
 
   if (step === 0) {
@@ -730,6 +869,8 @@ function parseToolResult(message: NonNullable<SessionEntry["message"]>): unknown
 
 function toMcpToolName(toolName: SedimentationToolName): SedimentationMcpToolName {
   switch (toolName) {
+    case "claw__artifact_create":
+      return "artifact_create";
     case "claw__files_append":
       return "files_append";
     case "claw__files_read_all":
@@ -743,7 +884,17 @@ function isSedimentationToolName(value: unknown): value is SedimentationToolName
   return (
     value === "claw__scope_get" ||
     value === "claw__files_append" ||
-    value === "claw__files_read_all"
+    value === "claw__files_read_all" ||
+    value === "claw__artifact_create"
+  );
+}
+
+function requestContainsWorkspaceContract(body: Record<string, unknown>): boolean {
+  const serialized = JSON.stringify(body);
+
+  return (
+    serialized.includes("CLAW Agent Workspace") &&
+    serialized.includes("Canonical Behavior Contract")
   );
 }
 
