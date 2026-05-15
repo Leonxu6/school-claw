@@ -89,3 +89,6 @@ Branch/worktree:
 - Type check: `pnpm typecheck` passed.
 - Single-command runtime evidence: `pnpm demo:capability-harness` passed. Output reported `runtime: openclaw-pi-runtime`, `runs: 5`, parent observation append/read-back `PASS`, parent refusal `PASS`, own-child read file IDs limited to `stu_001`, teacher class read including class and both students, `audit files_append: 1`, and `audit artifact_create: 2`.
 - Regression suite: `pnpm test` passed, 11 test files and 73 tests.
+- Stop-hook first rerun: verifier passed, reviewer failed because the harness relied on scripted reply text for read-back evidence and the demo command did not throw on failed criteria.
+- Reviewer fix: added mechanical assertions that `files_read_all` returns `classes/class_001/students/stu_001/parent-observations/2026-06.md` with appended content/frontmatter, and made `pnpm demo:capability-harness` throw on any failed acceptance criterion.
+- Post-reviewer-fix checks: `pnpm typecheck`, `pnpm vitest run tests/claw-agent-capability-harness.test.ts`, `pnpm demo:capability-harness`, and `pnpm test` all passed.

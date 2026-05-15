@@ -13,9 +13,11 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import type { ReadDocument } from "../src/archive/scoped-read.js";
 import {
   isOpenClawPiRuntimeAvailable,
   runCapabilityHarnessDemo,
+  type SedimentationTurn,
 } from "../src/openclaw/sedimentation-loop.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -65,12 +67,7 @@ function readAuditEntries(dataRoot: string): string[] {
   return walkFiles(auditRoot).map((filePath) => readFileSync(filePath, "utf8"));
 }
 
-function readAllFileIds(
-  turn: Awaited<ReturnType<typeof runCapabilityHarnessDemo>>[
-    | "parentPracticeTurn"
-    | "teacherErrorTableTurn"
-  ],
-): string[] {
+function readAllDocuments(turn: SedimentationTurn): ReadDocument[] {
   const readCall = turn.toolCalls.find((call) => call.toolName === "claw__files_read_all");
   const result = readCall?.result;
 
@@ -78,19 +75,13 @@ function readAllFileIds(
     return [];
   }
 
-  const documents = "documents" in result && Array.isArray(result.documents)
+  return "documents" in result && Array.isArray(result.documents)
     ? result.documents
     : [];
+}
 
-  return documents
-    .map((document) => {
-      if (document && typeof document === "object" && "fileId" in document) {
-        return String(document.fileId);
-      }
-
-      return undefined;
-    })
-    .filter((fileId): fileId is string => fileId !== undefined);
+function readAllFileIds(turn: SedimentationTurn): string[] {
+  return readAllDocuments(turn).map((document) => document.fileId);
 }
 
 describe("claw-agent capability harness", () => {
@@ -180,6 +171,22 @@ describe("claw-agent capability harness", () => {
         });
         expect(demo.parentObservationFollowUpTurn.toolCalls.map((call) => call.toolName))
           .toEqual(["claw__scope_get", "claw__files_read_all"]);
+        const appendedObservation = readAllDocuments(
+          demo.parentObservationFollowUpTurn,
+        ).find((document) => {
+          return document.fileId ===
+            "classes/class_001/students/stu_001/parent-observations/2026-06.md";
+        });
+
+        expect(appendedObservation).toBeDefined();
+        expect(appendedObservation?.content).toContain("没看清题目问的是什么");
+        expect(appendedObservation?.frontmatter).toMatchObject({
+          source_role: "parent",
+          class_id: "class_001",
+          student_id: "stu_001",
+          subject: "数学",
+          knowledge_point: "应用题",
+        });
         expect(demo.parentObservationFollowUpTurn.reply).toContain(
           "没看清题目问的是什么",
         );
