@@ -55,6 +55,24 @@ follow-up question reads and cites the new record
 input: greeting/idle chat -> no archive write occurs
 ```
 
+Run the local OpenClaw capability harness:
+
+```sh
+pnpm demo:capability-harness
+```
+
+Expected capability harness loop:
+
+```text
+OpenClaw Pi Runtime capability harness executed claw-agent journeys
+workspace AGENTS.md contract was injected
+parent observation journey used files_append
+parent observation follow-up read back the appended record
+parent practice artifact journey used artifact_create
+parent cross-student journey refused after scope
+teacher error-table journey used artifact_create
+```
+
 Run the scope demo:
 
 ```sh

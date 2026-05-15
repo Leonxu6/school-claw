@@ -17,7 +17,8 @@
     "demo:write-audit": "tsx scripts/demo-write-audit.ts",
     "demo:scope-bridge": "tsx scripts/demo-scope-bridge.ts",
     "demo:openclaw-read": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-openclaw-read.ts",
-    "demo:sedimentation": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-sedimentation.ts"
+    "demo:sedimentation": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-sedimentation.ts",
+    "demo:capability-harness": "node --import ./node_modules/tsx/dist/esm/index.mjs scripts/demo-capability-harness.ts"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
