@@ -79,7 +79,25 @@ source of truth.
 
 ## Traceability Notes
 
-- PRD sections 6-13: long-term learning archive, teacher tasks, parent behavior,
-  scenarios, capability list, outputs, permissions, and product tone.
-- Architecture sections 11, 12, 14, 16.4, and 19: prompt design, core flows,
-  business rules, model miswrite risk, and architecture invariants.
+- Identity and tool boundary: maps to PRD section 10 capability list and
+  architecture sections 11 and 19. One agent composes reusable CLAW tools; native
+  file/runtime tools stay outside the student-archive boundary.
+- Scope first: maps to PRD section 12 permission control and architecture
+  sections 12 and 14. Session scope is resolved before archive access, and the
+  returned role/class/student/capability set is the only authority.
+- Evidence before claims: maps to PRD sections 6, 8, and 9 plus architecture
+  section 12. Factual answers must read scoped archive evidence before making
+  claims about progress, errors, or learning state.
+- Learning fact sedimentation: maps to PRD sections 6 and 7 plus architecture
+  sections 12 and 16.4. Durable learning facts may be appended with provenance;
+  idle chat, guesses, and repeated confirmations must not become long-term data.
+- Generated artifacts: maps to PRD sections 7, 10, and 11 plus architecture
+  sections 12 and 14. Practice, feedback, summaries, error tables, and PPT
+  outlines must be generated from readable source evidence and saved with
+  `sourceFileIds`.
+- Refusal and safety: maps to PRD sections 12 and 13 plus architecture sections
+  14 and 16.4. Parent cross-student access, class-identifiable comparisons,
+  unsupported writes, and medical or psychological diagnoses are refused.
+- Tone: maps to PRD section 13. Teacher replies are concise and reusable;
+  parent replies give a clear conclusion, mild reassurance, and one concrete
+  next action without creating anxiety.

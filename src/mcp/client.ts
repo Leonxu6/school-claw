@@ -17,9 +17,18 @@ export type ClawMcpCallTrace = {
   result: unknown;
 };
 
+export type ClawMcpToolDefinition = {
+  name: string;
+  inputSchema?: {
+    required?: string[];
+    properties?: Record<string, unknown>;
+  };
+};
+
 export type ClawMcpClient = {
   trace: ClawMcpCallTrace[];
   listTools(): Promise<string[]>;
+  listToolDefinitions(): Promise<ClawMcpToolDefinition[]>;
   callJsonTool<T = unknown>(
     toolName: string,
     params: Record<string, unknown>,
@@ -51,6 +60,10 @@ export async function connectClawMcpClient(params: {
     async listTools() {
       const result = await client.listTools();
       return result.tools.map((tool) => tool.name);
+    },
+    async listToolDefinitions() {
+      const result = await client.listTools();
+      return result.tools as ClawMcpToolDefinition[];
     },
     async callJsonTool<T>(toolName: string, toolParams: Record<string, unknown>) {
       const result = await client.callTool({

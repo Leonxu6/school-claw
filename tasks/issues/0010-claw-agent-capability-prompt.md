@@ -19,15 +19,15 @@ Write the agent behavior prompt and any supporting workspace docs needed by Open
 
 ## Acceptance criteria
 
-- [ ] Prompt instructs the agent to establish scope before reading or writing.
-- [ ] Prompt requires evidence reads before factual answers about student history.
-- [ ] Prompt distinguishes durable learning facts from ordinary chat.
-- [ ] Prompt explains when to append observations and when not to write.
-- [ ] Prompt requires generated outputs to use `artifact_create` where appropriate.
-- [ ] Prompt clearly refuses parent access to other students or class-identifiable data.
-- [ ] Prompt preserves teacher and parent tone differences from the PRD.
-- [ ] Prompt does not introduce task-specific tools or fake capabilities.
-- [ ] Prompt review notes explain how each rule maps to PRD/architecture requirements.
+- [x] Prompt instructs the agent to establish scope before reading or writing.
+- [x] Prompt requires evidence reads before factual answers about student history.
+- [x] Prompt distinguishes durable learning facts from ordinary chat.
+- [x] Prompt explains when to append observations and when not to write.
+- [x] Prompt requires generated outputs to use `artifact_create` where appropriate.
+- [x] Prompt clearly refuses parent access to other students or class-identifiable data.
+- [x] Prompt preserves teacher and parent tone differences from the PRD.
+- [x] Prompt does not introduce task-specific tools or fake capabilities.
+- [x] Prompt review notes explain how each rule maps to PRD/architecture requirements.
 
 ## Blocked by
 

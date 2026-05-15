@@ -1,4 +1,3 @@
-import http from "node:http";
 import { readFileSync } from "node:fs";
 import { cp, mkdtemp, readFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -90,7 +89,7 @@ const { runEmbeddedPiAgent } = (await import(
   runEmbeddedPiAgent: RunEmbeddedPiAgent;
 };
 
-const modelServer = await startDeterministicResponsesServer({
+const modelServer = installDeterministicResponsesFetch({
   sessionKey: input.sessionKey,
   ...(input.forgedSsid ? { forgedSsid: input.forgedSsid } : {}),
   ...(input.nowIso ? { nowIso: input.nowIso } : {}),
@@ -299,69 +298,59 @@ function nodeWithTsxLoaderCommand(repoRoot: string, args: string[]): {
   };
 }
 
-async function startDeterministicResponsesServer(params: {
+function installDeterministicResponsesFetch(params: {
   sessionKey: string;
   forgedSsid?: string;
   nowIso?: string;
-}): Promise<{
+}): {
   baseUrl: string;
   activateTurn(turn: HelperInput["turns"][number]): void;
   consumeRequestToolNames(turnId: string): string[][];
   consumeRequestContractInjected(turnId: string): boolean;
   stop(): Promise<void>;
-}> {
+} {
   let activeTurn: ActiveTurn | undefined;
   const requestToolNamesByTurn = new Map<string, string[][]>();
   const requestContractInjectedByTurn = new Map<string, boolean[]>();
-  const server = http.createServer((request, response) => {
-    let body = "";
+  const originalFetch = globalThis.fetch;
+  const deterministicFetch: typeof fetch = async (request, init) => {
+    const url = request instanceof Request ? request.url : String(request);
 
-    request.on("data", (chunk: Buffer) => {
-      body += chunk.toString("utf8");
-    });
-    request.on("end", () => {
-      if (!activeTurn) {
-        response.writeHead(500, { "content-type": "application/json" });
-        response.end(JSON.stringify({ error: "No active sedimentation turn." }));
-        return;
-      }
+    if (!url.endsWith("/v1/responses")) {
+      return await originalFetch(request, init);
+    }
 
-      const parsed = body ? (JSON.parse(body) as Record<string, unknown>) : {};
-      const toolNames = readRequestToolNames(parsed);
-      const contractInjected = requestContainsWorkspaceContract(parsed);
-      activeTurn.requestToolNames.push(toolNames);
-      activeTurn.requestContractInjected.push(contractInjected);
-      requestToolNamesByTurn.set(activeTurn.id, activeTurn.requestToolNames);
-      requestContractInjectedByTurn.set(
-        activeTurn.id,
-        activeTurn.requestContractInjected,
-      );
+    if (!activeTurn) {
+      return Response.json({ error: "No active sedimentation turn." }, { status: 500 });
+    }
 
-      response.writeHead(200, {
-        "content-type": "text/event-stream",
+    const body = await readFetchBody(request, init);
+    const parsed = body ? (JSON.parse(body) as Record<string, unknown>) : {};
+    const toolNames = readRequestToolNames(parsed);
+    const contractInjected = requestContainsWorkspaceContract(parsed);
+    activeTurn.requestToolNames.push(toolNames);
+    activeTurn.requestContractInjected.push(contractInjected);
+    requestToolNamesByTurn.set(activeTurn.id, activeTurn.requestToolNames);
+    requestContractInjectedByTurn.set(activeTurn.id, activeTurn.requestContractInjected);
+
+    const events = nextResponseEvents(activeTurn, params)
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join("");
+
+    return new Response(`${events}data: [DONE]\n\n`, {
+      status: 200,
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
         "cache-control": "no-cache",
-        connection: "keep-alive",
-      });
-      for (const event of nextResponseEvents(activeTurn, params)) {
-        response.write(`data: ${JSON.stringify(event)}\n\n`);
-      }
-      response.write("data: [DONE]\n\n");
-      response.end();
+      },
     });
-  });
+  };
 
-  await new Promise<void>((resolve) => {
-    server.listen(0, "127.0.0.1", resolve);
-  });
-
-  const address = server.address();
-
-  if (!address || typeof address === "string") {
-    throw new Error("OpenClaw Pi sedimentation model server did not bind to a TCP port.");
-  }
+  Object.assign(deterministicFetch, { mock: {} });
+  globalThis.fetch = deterministicFetch;
 
   return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
+    baseUrl: "http://127.0.0.1/v1",
     activateTurn(turn) {
       activeTurn = {
         ...turn,
@@ -377,17 +366,47 @@ async function startDeterministicResponsesServer(params: {
       return requestContractInjectedByTurn.get(turnId)?.some(Boolean) ?? false;
     },
     async stop() {
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve();
-        });
-      });
+      globalThis.fetch = originalFetch;
     },
   };
+}
+
+async function readFetchBody(
+  request: RequestInfo | URL,
+  init: RequestInit | undefined,
+): Promise<string> {
+  if (request instanceof Request) {
+    return await request.clone().text();
+  }
+
+  const body = init?.body;
+
+  if (typeof body === "string") {
+    return body;
+  }
+
+  if (body instanceof Uint8Array) {
+    return Buffer.from(body).toString("utf8");
+  }
+
+  if (body && typeof (body as { getReader?: unknown }).getReader === "function") {
+    const reader = (body as ReadableStream<Uint8Array>).getReader();
+    const chunks: Uint8Array[] = [];
+
+    for (;;) {
+      const chunk = await reader.read();
+
+      if (chunk.done) {
+        break;
+      }
+
+      chunks.push(chunk.value);
+    }
+
+    return Buffer.concat(chunks).toString("utf8");
+  }
+
+  return "";
 }
 
 function nextResponseEvents(

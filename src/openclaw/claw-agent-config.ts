@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 export const CLAW_AGENT_ID = "claw-agent";
@@ -160,6 +161,7 @@ export function createClawAgentOpenClawConfig(
   const pathMode = options.pathMode ?? "absolute";
   const fromRepoRoot = (...segments: string[]) =>
     toConfigPath(repoRoot, path.join(repoRoot, ...segments), pathMode);
+  const systemPromptOverride = createClawAgentSystemPrompt(repoRoot);
 
   return {
     openclawRuntime: {
@@ -191,7 +193,7 @@ export function createClawAgentOpenClawConfig(
           default: true,
           name: "CLAW Agent",
           workspace: fromRepoRoot("workspaces", CLAW_AGENT_ID),
-          systemPromptOverride: fromRepoRoot("prompts", "claw-agent.md"),
+          systemPromptOverride,
           tools: {
             profile: "messaging",
             allow: ["bundle-mcp", "message", "session_status"],
@@ -244,6 +246,23 @@ export function createClawAgentOpenClawConfig(
       },
     },
   };
+}
+
+function createClawAgentSystemPrompt(repoRoot: string): string {
+  const promptText = readFileSync(path.join(repoRoot, "prompts", "claw-agent.md"), "utf8");
+  const workspaceContract = readFileSync(
+    path.join(repoRoot, "workspaces", CLAW_AGENT_ID, "AGENTS.md"),
+    "utf8",
+  );
+
+  return [
+    promptText.trimEnd(),
+    "",
+    "## Embedded Workspace Behavior Contract",
+    "",
+    workspaceContract.trimEnd(),
+    "",
+  ].join("\n");
 }
 
 export function createLoadableClawAgentOpenClawConfig(

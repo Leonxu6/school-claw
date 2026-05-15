@@ -144,6 +144,47 @@ describe("CLAW MCP artifact_create tool", () => {
     }
   });
 
+  it("does not require model-provided ssid in MCP tool schemas", async () => {
+    const config = createClawAgentOpenClawConfig({ repoRoot, dataRoot });
+    const client = await connectClawMcpClient({
+      serverName: "claw",
+      server: config.mcp.servers.claw,
+    });
+
+    try {
+      const tools = await client.listToolDefinitions();
+      const toolByName = new Map(tools.map((tool) => [tool.name, tool]));
+      const requiredByTool = Object.fromEntries(
+        [
+          "scope_get",
+          "files_read",
+          "files_read_all",
+          "files_list",
+          "files_append",
+          "artifact_create",
+        ].map((toolName) => [
+          toolName,
+          toolByName.get(toolName)?.inputSchema?.required ?? [],
+        ]),
+      ) as Record<string, string[]>;
+
+      expect(requiredByTool.scope_get).not.toContain("ssid");
+      expect(requiredByTool.files_read).toEqual(["fileIds"]);
+      expect(requiredByTool.files_read_all).not.toContain("ssid");
+      expect(requiredByTool.files_list).not.toContain("ssid");
+      expect(requiredByTool.files_append).toEqual(["target", "content", "reason"]);
+      expect(requiredByTool.artifact_create).toEqual([
+        "artifactType",
+        "title",
+        "format",
+        "content",
+        "sourceFileIds",
+      ]);
+    } finally {
+      await client.close();
+    }
+  });
+
   it("rejects parent cross-student artifacts through MCP without creating files or audit", async () => {
     const config = createClawAgentOpenClawConfig({ repoRoot, dataRoot });
     const client = await connectClawMcpClient({

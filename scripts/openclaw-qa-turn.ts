@@ -1,4 +1,7 @@
+import { EventEmitter } from "node:events";
+import http from "node:http";
 import { readFileSync } from "node:fs";
+import { Readable } from "node:stream";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -65,18 +68,13 @@ const { setQaChannelRuntime } = (await import(
 )) as {
   setQaChannelRuntime(runtime: Record<string, unknown>): void;
 };
-const { createQaBusState, startQaBusServer } = (await import(
+const { createQaBusState } = (await import(
   openclawModule("extensions/qa-lab/bus-api.ts")
 )) as {
   createQaBusState(): {
     getSnapshot(): QaBusSnapshot;
+    addOutboundMessage(input: Record<string, unknown>): QaBusMessage;
   };
-  startQaBusServer(params: {
-    state: ReturnType<typeof createQaBusState>;
-  }): Promise<{
-    baseUrl: string;
-    stop(): Promise<void>;
-  }>;
 };
 const { createBundleMcpToolRuntime } = (await import(
   openclawModule("src/agents/pi-bundle-mcp-materialize.ts")
@@ -103,7 +101,7 @@ const { createBundleMcpToolRuntime } = (await import(
 const runs: ReadLoopTurn[] = [];
 const sessionUpdatedAt = new Map<string, number>();
 const qaBusState = createQaBusState();
-const qaBus = await startQaBusServer({ state: qaBusState });
+const qaBus = installInProcessQaBusHttp({ state: qaBusState });
 const config = createClawAgentOpenClawConfig({
   repoRoot: input.repoRoot,
   dataRoot: input.dataRoot,
@@ -318,6 +316,124 @@ try {
 } finally {
   await bundleMcpRuntime.dispose();
   await qaBus.stop();
+}
+
+function installInProcessQaBusHttp(params: {
+  state: {
+    addOutboundMessage(input: Record<string, unknown>): QaBusMessage;
+  };
+}): {
+  baseUrl: string;
+  stop(): Promise<void>;
+} {
+  const originalRequest = http.request.bind(http) as (...args: unknown[]) => http.ClientRequest;
+
+  http.request = ((...args: unknown[]) => {
+    const url = requestUrlFromArgs(args);
+
+    if (!url || url.hostname !== "127.0.0.1" || url.pathname !== "/v1/outbound/message") {
+      return originalRequest(...args);
+    }
+
+    const callback = args.find((arg): arg is (response: http.IncomingMessage) => void => {
+      return typeof arg === "function";
+    });
+    const request = new EventEmitter() as http.ClientRequest;
+    const chunks: Buffer[] = [];
+
+    request.write = ((chunk: unknown) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+      return true;
+    }) as http.ClientRequest["write"];
+    request.end = ((chunk?: unknown) => {
+      if (chunk !== undefined) {
+        request.write(chunk);
+      }
+
+      queueMicrotask(() => {
+        respondToInProcessQaBusRequest({
+          body: Buffer.concat(chunks).toString("utf8"),
+          callback,
+          request,
+          state: params.state,
+        });
+      });
+
+      return request;
+    }) as http.ClientRequest["end"];
+    request.destroy = ((error?: Error) => {
+      if (error) {
+        request.emit("error", error);
+      }
+      request.emit("close");
+      return request;
+    }) as http.ClientRequest["destroy"];
+    request.abort = (() => {
+      request.destroy(Object.assign(new Error("The operation was aborted"), {
+        name: "AbortError",
+      }));
+    }) as http.ClientRequest["abort"];
+    request.setTimeout = (() => request) as http.ClientRequest["setTimeout"];
+
+    return request;
+  }) as typeof http.request;
+
+  return {
+    baseUrl: "http://127.0.0.1",
+    async stop() {
+      http.request = originalRequest as typeof http.request;
+    },
+  };
+}
+
+function respondToInProcessQaBusRequest(params: {
+  body: string;
+  callback: ((response: http.IncomingMessage) => void) | undefined;
+  request: EventEmitter;
+  state: {
+    addOutboundMessage(input: Record<string, unknown>): QaBusMessage;
+  };
+}): void {
+  let statusCode = 200;
+  let payload: unknown;
+
+  try {
+    payload = {
+      message: params.state.addOutboundMessage(
+        params.body.trim() ? (JSON.parse(params.body) as Record<string, unknown>) : {},
+      ),
+    };
+  } catch (error) {
+    statusCode = 400;
+    payload = {
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  const response = Readable.from([Buffer.from(JSON.stringify(payload))]) as http.IncomingMessage;
+  response.statusCode = statusCode;
+  response.headers = {
+    "content-type": "application/json; charset=utf-8",
+  };
+
+  params.callback?.(response);
+  response.once("end", () => {
+    params.request.emit("close");
+  });
+}
+
+function requestUrlFromArgs(args: unknown[]): URL | undefined {
+  const [first] = args;
+
+  if (first instanceof URL) {
+    return first;
+  }
+
+  if (typeof first === "string") {
+    return new URL(first);
+  }
+
+  return undefined;
 }
 
 function createOpenClawBundleToolExecutor(bundleMcpRuntime: {

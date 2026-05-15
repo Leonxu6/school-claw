@@ -53,6 +53,11 @@ describe("OpenClaw claw-agent workspace config", () => {
   it("defines a loadable one-agent OpenClaw config with scoped MCP and locked-down native tools", () => {
     const dataRoot = path.join(repoRoot, "claw-data");
     const config = createLoadableClawAgentOpenClawConfig({ repoRoot, dataRoot });
+    const prompt = readFileSync(path.join(repoRoot, "prompts", "claw-agent.md"), "utf8");
+    const workspaceContract = readFileSync(
+      path.join(repoRoot, "workspaces", CLAW_AGENT_ID, "AGENTS.md"),
+      "utf8",
+    );
 
     expect(config).not.toHaveProperty("openclawRuntime");
     expect(config.session.dmScope).toBe("per-channel-peer");
@@ -75,12 +80,20 @@ describe("OpenClaw claw-agent workspace config", () => {
       id: CLAW_AGENT_ID,
       default: true,
       workspace: path.join(repoRoot, "workspaces", CLAW_AGENT_ID),
-      systemPromptOverride: path.join(repoRoot, "prompts", "claw-agent.md"),
+      systemPromptOverride: expect.stringContaining(prompt),
       tools: {
         profile: "messaging",
         allow: ["bundle-mcp", "message", "session_status"],
       },
     });
+    expect(agent?.systemPromptOverride).toContain(workspaceContract);
+    expect(agent?.systemPromptOverride).toContain("Canonical Behavior Contract");
+    expect(agent?.systemPromptOverride).toContain("Teacher tone");
+    expect(agent?.systemPromptOverride).toContain("Parent tone");
+    expect(agent?.systemPromptOverride).toContain("Traceability Notes");
+    expect(agent?.systemPromptOverride).toContain("claw__scope_get");
+    expect(agent?.systemPromptOverride).toContain("claw__artifact_create");
+    expect(agent?.systemPromptOverride).not.toMatch(/prompts\/claw-agent\.md/u);
     expect(agent?.tools.deny).toEqual(
       expect.arrayContaining([
         "group:fs",
@@ -161,6 +174,13 @@ describe("OpenClaw claw-agent workspace config", () => {
         pathMode: "repo-relative",
       }),
     );
+    const shippedPrompt = JSON.parse(readFileSync(configPath, "utf8")).agents
+      .list[0].systemPromptOverride as string;
+
+    expect(shippedPrompt).toContain("Canonical Behavior Contract");
+    expect(shippedPrompt).toContain("Teacher tone");
+    expect(shippedPrompt).toContain("Parent tone");
+    expect(shippedPrompt).toContain("Traceability Notes");
 
     expect(
       JSON.parse(readFileSync(path.join(pluginRoot, "openclaw.plugin.json"), "utf8")),

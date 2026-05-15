@@ -82,7 +82,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "string",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -104,7 +103,7 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid", "fileIds"],
+          required: ["fileIds"],
         },
       },
       {
@@ -139,7 +138,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -171,7 +169,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "number",
             },
           },
-          required: ["ssid"],
         },
       },
       {
@@ -217,7 +214,7 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
               type: "string",
             },
           },
-          required: ["ssid", "target", "content", "reason"],
+          required: ["target", "content", "reason"],
         },
       },
       {
@@ -254,7 +251,6 @@ export function createClawMcpServer(options: ClawMcpServerOptions): Server {
             },
           },
           required: [
-            "ssid",
             "artifactType",
             "title",
             "format",

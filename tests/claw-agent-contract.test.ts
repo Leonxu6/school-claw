@@ -41,8 +41,15 @@ describe("claw-agent capability prompt contract", () => {
       "no medical or psychological diagnosis",
       "Teacher tone",
       "Parent tone",
-      "PRD sections 6-13",
-      "Architecture sections 11, 12, 14, 16.4, and 19",
+      "Identity and tool boundary",
+      "PRD section 10",
+      "Scope first",
+      "sections 12 and 14",
+      "Evidence before claims",
+      "Learning fact sedimentation",
+      "Generated artifacts",
+      "Refusal and safety",
+      "Tone",
     ]);
     expect(contract).not.toMatch(/\bgenerate_practice\b|\bgenerate_feedback\b/u);
   });
