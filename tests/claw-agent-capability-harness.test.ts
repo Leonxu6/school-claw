@@ -30,9 +30,9 @@ const packageJson = JSON.parse(
 const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
 const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const teacherSsid = "agent:claw-agent:feishu:direct:teacher-openid-001";
-const piRuntimeIt = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot })
-  ? it
-  : it.skip;
+const hasPiRuntime = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot });
+const requirePiRuntime = process.env.CLAW_PILOT_SMOKE === "1";
+const piRuntimeIt = hasPiRuntime || requirePiRuntime ? it : it.skip;
 
 function createScratchArchive(): { scratchRoot: string; dataRoot: string } {
   const scratchRoot = path.join(tmpdir(), `school-claw-capability-${crypto.randomUUID()}`);
@@ -214,6 +214,12 @@ describe("claw-agent capability harness", () => {
           ok: true,
           fileId: expect.stringContaining("classes/class_001/artifacts"),
         });
+        expect(teacherArtifact?.params.content).toContain("分数应用题");
+        expect(teacherArtifact?.params.content).not.toContain("英语听写");
+        expect(teacherArtifact?.params.sourceFileIds).toEqual([
+          "classes/class_001/class.md",
+          "classes/class_001/students/stu_001/errors/2026-05.md",
+        ]);
 
         const audit = readAuditEntries(dataRoot).join("\n");
         expect(audit.match(/action: artifact_create/g)).toHaveLength(2);

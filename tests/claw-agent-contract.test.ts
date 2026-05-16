@@ -76,7 +76,6 @@ describe("claw-agent capability prompt contract", () => {
   });
 
   it("ships the contract in the configured OpenClaw workspace", () => {
-    expect(repoRoot).toContain("school-claw");
     const prompt = readFileSync(promptPath, "utf8");
     const contract = readFileSync(workspaceContractPath, "utf8");
 

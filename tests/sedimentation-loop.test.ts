@@ -1,10 +1,13 @@
 import {
   cpSync,
   existsSync,
+  mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -26,9 +29,9 @@ const fixtureRoot = fileURLToPath(
 );
 const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const teacherSsid = "agent:claw-agent:feishu:direct:teacher-openid-001";
-const piRuntimeIt = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot })
-  ? it
-  : it.skip;
+const hasPiRuntime = isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot });
+const requirePiRuntime = process.env.CLAW_PILOT_SMOKE === "1";
+const piRuntimeIt = hasPiRuntime || requirePiRuntime ? it : it.skip;
 
 function createScratchArchive(): { scratchRoot: string; dataRoot: string } {
   const scratchRoot = path.join(tmpdir(), `school-claw-sedimentation-${crypto.randomUUID()}`);
@@ -72,6 +75,38 @@ describe("agent learning-record sedimentation loop", () => {
         openclawCheckoutPath: path.join(tmpdir(), "missing-openclaw-checkout"),
       }),
     ).toBe(false);
+  });
+
+  it("uses the operator-selected OpenClaw checkout when probing Pi Runtime", () => {
+    const scratchCheckout = mkdtempSync(path.join(tmpdir(), "school-claw-openclaw-env-"));
+    const runnerDir = path.join(scratchCheckout, "src", "agents", "pi-embedded-runner");
+    const previousOpenClawDir = process.env.OPENCLAW_DIR;
+    const previousOpenClawCheckout = process.env.OPENCLAW_CHECKOUT;
+
+    mkdirSync(runnerDir, { recursive: true });
+    writeFileSync(path.join(runnerDir, "run.ts"), "export {};\n");
+    process.env.OPENCLAW_DIR = scratchCheckout;
+    delete process.env.OPENCLAW_CHECKOUT;
+
+    try {
+      expect(isOpenClawPiRuntimeAvailable({ repoRoot, dataRoot: fixtureRoot })).toBe(
+        true,
+      );
+    } finally {
+      if (previousOpenClawDir === undefined) {
+        delete process.env.OPENCLAW_DIR;
+      } else {
+        process.env.OPENCLAW_DIR = previousOpenClawDir;
+      }
+
+      if (previousOpenClawCheckout === undefined) {
+        delete process.env.OPENCLAW_CHECKOUT;
+      } else {
+        process.env.OPENCLAW_CHECKOUT = previousOpenClawCheckout;
+      }
+
+      rmSync(scratchCheckout, { recursive: true, force: true });
+    }
   });
 
   piRuntimeIt("records durable parent evidence through MCP and later cites the new record", async () => {

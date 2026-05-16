@@ -19,16 +19,32 @@ Create the pilot operations baseline: runbook, environment variables, local/remo
 
 ## Acceptance criteria
 
-- [ ] Runbook explains how to start and stop the OpenClaw Gateway plus CLAW MCP Server.
-- [ ] Runbook explains where `claw-data`, OpenClaw workspace, logs, sessions, and audit files live.
-- [ ] Security checklist verifies native risky tools are denied.
-- [ ] Security checklist verifies parent isolation tests pass before pilot.
-- [ ] Audit review command or procedure exists.
-- [ ] Backup/restore procedure exists for Markdown learning archives and registry data.
-- [ ] Failure modes include tool failure, forbidden access, platform disconnect, and Gateway restart.
-- [ ] Relevant smoke checks pass.
+- [x] Runbook explains how to start and stop the OpenClaw Gateway plus CLAW MCP Server.
+- [x] Runbook explains where `claw-data`, OpenClaw workspace, logs, sessions, and audit files live.
+- [x] Security checklist verifies native risky tools are denied.
+- [x] Security checklist verifies parent isolation tests pass before pilot.
+- [x] Audit review command or procedure exists.
+- [x] Backup/restore procedure exists for Markdown learning archives and registry data.
+- [x] Failure modes include tool failure, forbidden access, platform disconnect, and Gateway restart.
+- [x] Relevant smoke checks pass.
 
-## Blocked by
+## Implementation evidence
 
-- DRAFT-0011 local OpenClaw capability harness.
-- DRAFT-0012 native platform binding spike.
+- Runbook: `docs/development/pilot-operations-security-baseline.md`.
+- Smoke command: `pnpm pilot:smoke`.
+- Drift/security test: `tests/pilot-operations-baseline.test.ts`.
+- Verification:
+  - `./scripts/verify-openclaw-baseline.sh` passed, including checks for the
+    documented OpenClaw source CLI entrypoint and pinned `tsx` loader.
+  - `pnpm exec vitest run tests/pilot-operations-baseline.test.ts` passed.
+  - `pnpm pilot:smoke` passed, including OpenClaw baseline verification,
+    operations/security tests, and typecheck.
+- `pnpm test` passed with 14 test files and 91 tests.
+
+Note: real native-platform smoke remains HITL and must be recorded in the
+runbook's live platform smoke table before real pilot traffic.
+
+## Dependency basis
+
+- Issue 0011 local OpenClaw capability harness and issue 0012 native platform
+  binding assets have been merged from `origin/main` into this worktree.
