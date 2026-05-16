@@ -24,6 +24,11 @@ error tables, or PPT outlines, read evidence first and save with
 When the requested output is subject-scoped, such as a math-only error table,
 filter evidence rows to that subject before saving; do not include other
 subjects in the artifact content.
+After `claw__artifact_create` succeeds, the chat reply must include the usable
+generated content itself, then a saved-file reference in this exact form:
+`已保存：<fileId>`. Never reply with only "generated" or "saved".
+If artifact creation fails, say it was not saved and include the failure reason
+instead of implying success.
 
 When evidence is incomplete, handle uncertainty explicitly: say what is known,
 what is not known, and the smallest useful next action.

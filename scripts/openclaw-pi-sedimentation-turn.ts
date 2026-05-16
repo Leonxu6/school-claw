@@ -333,7 +333,10 @@ function installDeterministicResponsesFetch(params: {
     requestToolNamesByTurn.set(activeTurn.id, activeTurn.requestToolNames);
     requestContractInjectedByTurn.set(activeTurn.id, activeTurn.requestContractInjected);
 
-    const events = nextResponseEvents(activeTurn, params)
+    const events = nextResponseEvents(activeTurn, {
+      ...params,
+      requestBody: parsed,
+    })
       .map((event) => `data: ${JSON.stringify(event)}\n\n`)
       .join("");
 
@@ -415,6 +418,7 @@ function nextResponseEvents(
     sessionKey: string;
     forgedSsid?: string;
     nowIso?: string;
+    requestBody: Record<string, unknown>;
   },
 ): Array<Record<string, unknown>> {
   const responseIndex = turn.step + 1;
@@ -534,9 +538,23 @@ function nextResponseEvents(
         ],
       });
     }
+    const artifactFileId =
+      latestArtifactFileId(params.requestBody) ?? "artifact_create 未返回文件位置";
+
     return responseText(
       responseIndex,
-      "已根据孩子自己的记录生成今晚练习，并保存为练习 artifact。",
+      [
+        "# 张三分数应用题练习",
+        "",
+        "今晚练习：",
+        "1. 先圈出单位一，再列式。",
+        "2. 做完后说清题目问什么。",
+        "",
+        "答案提示：先找总量，再判断对应分率。",
+        "",
+        "这份练习来自张三自己的错题记录和学习档案。",
+        `已保存：${artifactFileId}`,
+      ].join("\n"),
     );
   }
 
@@ -582,7 +600,22 @@ function nextResponseEvents(
         ],
       });
     }
-    return responseText(responseIndex, "已生成班级错题表 artifact，可直接给老师复用。");
+    const artifactFileId =
+      latestArtifactFileId(params.requestBody) ?? "artifact_create 未返回文件位置";
+
+    return responseText(
+      responseIndex,
+      [
+        "# 五年级一班本周数学错题表",
+        "",
+        "| 知识点 | 典型错因 |",
+        "| --- | --- |",
+        "| 分数应用题 | 单位一不稳 |",
+        "",
+        "依据：本周班级档案和学生错题记录，已按数学相关证据过滤。",
+        `已保存：${artifactFileId}`,
+      ].join("\n"),
+    );
   }
 
   if (step === 0) {
@@ -592,6 +625,42 @@ function nextResponseEvents(
   }
 
   return responseText(responseIndex, "这条消息不会写入学习档案。");
+}
+
+function latestArtifactFileId(body: Record<string, unknown>): string | undefined {
+  const candidates = collectArtifactFileIds(body);
+
+  return candidates.at(-1);
+}
+
+function collectArtifactFileIds(value: unknown): string[] {
+  if (typeof value === "string") {
+    return extractArtifactFileIds(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(collectArtifactFileIds);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectArtifactFileIds);
+  }
+
+  return [];
+}
+
+function extractArtifactFileIds(text: string): string[] {
+  const fromText = [...text.matchAll(/classes\/[^\s"'`]+\/artifacts\/[^\s"'`]+\.md/gu)]
+    .map((match) => match[0]);
+
+  try {
+    return [
+      ...fromText,
+      ...collectArtifactFileIds(JSON.parse(text) as unknown),
+    ];
+  } catch {
+    return fromText;
+  }
 }
 
 function responseToolCall(

@@ -61,6 +61,14 @@ source of truth.
 - Save durable generated outputs with `claw__artifact_create`, using readable
   `sourceFileIds` from the evidence used to create the artifact.
 - After saving, reply with the usable result and the saved artifact reference.
+  The reply must show the generated content itself, such as the practice items,
+  feedback paragraph, table, summary, or PPT outline. Then include the saved file
+  reference exactly as `已保存：<fileId>`.
+- Do not answer generated-output requests with only a status sentence like
+  "已生成" or "已保存". The user should be able to use the content directly from
+  the chat even before opening the saved artifact.
+- If `claw__artifact_create` fails, say the artifact was not saved, include the
+  failure reason, and do not imply that a durable artifact exists.
 - Do not create generated output from unsupported or cross-student sources.
 
 ### Refusal And Safety

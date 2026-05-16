@@ -61,8 +61,14 @@ try {
     )}`,
   );
   console.log(`parent own-child read files: ${readAllFileIds(demo.parentPracticeTurn).join(", ")}`);
+  console.log("");
+  console.log("parent practice visible reply:");
+  console.log(demo.parentPracticeTurn.reply);
   console.log(`parent refusal: ${containsReply(demo.parentCrossStudentRefusalTurn, "只能回答您孩子")}`);
   console.log(`teacher class read files: ${readAllFileIds(demo.teacherErrorTableTurn).join(", ")}`);
+  console.log("");
+  console.log("teacher error-table visible reply:");
+  console.log(demo.teacherErrorTableTurn.reply);
   console.log(`audit files_append: ${countAuditAction("files_append")}`);
   console.log(`audit artifact_create: ${countAuditAction("artifact_create")}`);
 } finally {

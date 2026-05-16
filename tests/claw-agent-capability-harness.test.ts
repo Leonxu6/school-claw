@@ -157,6 +157,15 @@ describe("claw-agent capability harness", () => {
           ok: true,
           fileId: expect.stringContaining("students/stu_001/artifacts"),
         });
+        const parentArtifactFileId = toolResultFileId(parentArtifact?.result);
+
+        expect(demo.parentPracticeTurn.reply).toContain("张三分数应用题练习");
+        expect(demo.parentPracticeTurn.reply).toContain("先圈出单位一");
+        expect(demo.parentPracticeTurn.reply).toContain("做完后说清题目问什么");
+        expect(demo.parentPracticeTurn.reply).toContain("今晚");
+        expect(demo.parentPracticeTurn.reply).toContain(
+          `已保存：${parentArtifactFileId}`,
+        );
 
         expect(demo.parentObservationTurn.toolCalls.map((call) => call.toolName)).toEqual([
           "claw__scope_get",
@@ -214,12 +223,22 @@ describe("claw-agent capability harness", () => {
           ok: true,
           fileId: expect.stringContaining("classes/class_001/artifacts"),
         });
+        const teacherArtifactFileId = toolResultFileId(teacherArtifact?.result);
+
         expect(teacherArtifact?.params.content).toContain("分数应用题");
         expect(teacherArtifact?.params.content).not.toContain("英语听写");
         expect(teacherArtifact?.params.sourceFileIds).toEqual([
           "classes/class_001/class.md",
           "classes/class_001/students/stu_001/errors/2026-05.md",
         ]);
+        expect(demo.teacherErrorTableTurn.reply).toContain("五年级一班本周数学错题表");
+        expect(demo.teacherErrorTableTurn.reply).toContain("| 知识点 | 典型错因 |");
+        expect(demo.teacherErrorTableTurn.reply).toContain("分数应用题");
+        expect(demo.teacherErrorTableTurn.reply).toContain("单位一不稳");
+        expect(demo.teacherErrorTableTurn.reply).not.toContain("英语听写");
+        expect(demo.teacherErrorTableTurn.reply).toContain(
+          `已保存：${teacherArtifactFileId}`,
+        );
 
         const audit = readAuditEntries(dataRoot).join("\n");
         expect(audit.match(/action: artifact_create/g)).toHaveLength(2);
@@ -231,3 +250,21 @@ describe("claw-agent capability harness", () => {
     120_000,
   );
 });
+
+function toolResultFileId(result: unknown): string {
+  expect(result).toMatchObject({
+    ok: true,
+    fileId: expect.any(String),
+  });
+
+  if (
+    result &&
+    typeof result === "object" &&
+    "fileId" in result &&
+    typeof result.fileId === "string"
+  ) {
+    return result.fileId;
+  }
+
+  throw new Error("Expected tool result to include a fileId.");
+}
