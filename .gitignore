@@ -9,5 +9,6 @@ coverage/
 .env.*
 !.env.example
 .scratch/
+**/.openclaw/
 claw-data/
 *.log

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 export type ScopeRole = "parent" | "teacher";
 export type ScopeStatus = "active" | "disabled";
 
@@ -5,6 +7,7 @@ export type PublicScope = {
   role: ScopeRole;
   classId: string;
   studentIds: string[];
+  students: StudentRecord[];
   capabilities: string[];
   displayName: string;
 };
@@ -206,7 +209,9 @@ export const fixtureRegistry: FixtureRegistry = {
   ],
 };
 
-export type SessionScope = SessionScopeRecord;
+export type SessionScope = SessionScopeRecord & {
+  knownStudentIds: string[];
+};
 
 export type ScopeResolveResult =
   | {
@@ -254,6 +259,7 @@ export function resolveSessionScope(
     scope: {
       ...session,
       studentIds: [...session.studentIds],
+      knownStudentIds: knownStudentIdsForSession(session, registry),
       readRoots: [...session.readRoots],
       writeRoots: [...session.writeRoots],
       capabilities: [...session.capabilities],
@@ -279,8 +285,112 @@ export function scopeGet(
       role: session.role,
       classId: session.classId,
       studentIds: [...session.studentIds],
+      students: visibleStudentsForSession(session, registry),
       capabilities: [...session.capabilities],
       displayName: session.displayName,
     },
   };
+}
+
+function visibleStudentsForSession(
+  session: SessionScope,
+  registry: FixtureRegistry,
+): StudentRecord[] {
+  const visible = session.studentIds.includes("*")
+    ? registry.students
+    : registry.students.filter((student) => session.studentIds.includes(student.studentId));
+
+  return visible.map((student) => ({ ...student }));
+}
+
+function knownStudentIdsForSession(
+  session: SessionScopeRecord,
+  registry: FixtureRegistry,
+): string[] {
+  if (!session.studentIds.includes("*")) {
+    return [...session.studentIds];
+  }
+
+  return registry.students.map((student) => student.studentId);
+}
+
+export function loadScopeRegistryFromFile(filePath: string): FixtureRegistry {
+  const raw = readFileSync(filePath, "utf8");
+  const parsed = JSON.parse(raw) as unknown;
+
+  if (!isRecord(parsed)) {
+    throw new Error(`Scope registry must be a JSON object: ${filePath}`);
+  }
+
+  const registry = {
+    parents: recordsArray(parsed.parents, "parents", filePath),
+    students: recordsArray(parsed.students, "students", filePath),
+    teachers: recordsArray(parsed.teachers, "teachers", filePath),
+    sessions: recordsArray(parsed.sessions, "sessions", filePath),
+  } as FixtureRegistry;
+
+  for (const session of registry.sessions) {
+    validateSessionRecord(session, filePath);
+  }
+
+  return registry;
+}
+
+function recordsArray(
+  value: unknown,
+  field: keyof FixtureRegistry,
+  filePath: string,
+): Record<string, unknown>[] {
+  if (!Array.isArray(value) || !value.every(isRecord)) {
+    throw new Error(`Scope registry ${field} must be an array of objects: ${filePath}`);
+  }
+
+  return value;
+}
+
+function validateSessionRecord(session: SessionScopeRecord, filePath: string): void {
+  const fields: Array<keyof SessionScopeRecord> = [
+    "ssid",
+    "ssidHash",
+    "role",
+    "status",
+    "platform",
+    "peerKind",
+    "peerId",
+    "classId",
+    "studentIds",
+    "readRoots",
+    "writeRoots",
+    "capabilities",
+    "displayName",
+    "createdAt",
+    "updatedAt",
+  ];
+
+  for (const field of fields) {
+    if (session[field] === undefined) {
+      throw new Error(`Scope registry session is missing ${field}: ${filePath}`);
+    }
+  }
+
+  if (session.role !== "parent" && session.role !== "teacher") {
+    throw new Error(`Scope registry session role is invalid: ${filePath}`);
+  }
+
+  if (session.status !== "active" && session.status !== "disabled") {
+    throw new Error(`Scope registry session status is invalid: ${filePath}`);
+  }
+
+  if (
+    !Array.isArray(session.studentIds) ||
+    !Array.isArray(session.readRoots) ||
+    !Array.isArray(session.writeRoots) ||
+    !Array.isArray(session.capabilities)
+  ) {
+    throw new Error(`Scope registry session list fields are invalid: ${filePath}`);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

@@ -54,6 +54,10 @@ source of truth.
 
 - For generated practice, feedback, weekly summaries, error tables, PPT
   outlines, or reusable briefs, read relevant evidence first.
+- If the user scopes an artifact to a subject, date window, student set, or
+  class subset, filter the evidence to that scope before composing and saving
+  the artifact. A math-only artifact must not contain Chinese, English, or other
+  subject rows even when those rows appear in the source files.
 - Save durable generated outputs with `claw__artifact_create`, using readable
   `sourceFileIds` from the evidence used to create the artifact.
 - After saving, reply with the usable result and the saved artifact reference.

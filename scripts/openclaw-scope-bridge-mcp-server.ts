@@ -242,6 +242,7 @@ async function createScopeBridgeMcpServer(
       cwd: options.repoRoot,
       env: compactEnv({
         CLAW_DATA_DIR: options.dataRoot,
+        CLAW_SCOPE_REGISTRY_PATH: process.env.CLAW_SCOPE_REGISTRY_PATH,
         ...(options.nowIso ? { CLAW_NOW: options.nowIso } : {}),
       }),
     },

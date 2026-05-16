@@ -609,7 +609,15 @@ function isInsideAnyRoot(targetPath: string, rootPaths: string[]): boolean {
 }
 
 function scopeCanSeeStudent(scope: SessionScope, studentId: string): boolean {
-  return scope.studentIds.includes("*") || scope.studentIds.includes(studentId);
+  if (scope.studentIds.includes(studentId)) {
+    return true;
+  }
+
+  if (!scope.studentIds.includes("*")) {
+    return false;
+  }
+
+  return scope.knownStudentIds.includes(studentId);
 }
 
 function parseMarkdown(raw: string): ParsedMarkdown {
