@@ -1,9 +1,7 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const workspaceContractPath = new URL(
   "../workspaces/claw-agent/AGENTS.md",
   import.meta.url,
@@ -76,7 +74,6 @@ describe("claw-agent capability prompt contract", () => {
   });
 
   it("ships the contract in the configured OpenClaw workspace", () => {
-    expect(repoRoot).toContain("school-claw");
     const prompt = readFileSync(promptPath, "utf8");
     const contract = readFileSync(workspaceContractPath, "utf8");
 

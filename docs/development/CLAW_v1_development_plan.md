@@ -133,10 +133,10 @@ These are acceptance tests, not separate implementation tracks.
 
 ## Fresh-Window Dispatch Rule
 
-When dispatching work to another window, pass exactly one numbered issue file from `tasks/issues/` and tell the agent:
+When dispatching work to another window, pass exactly one numbered issue file from `tasks/todo/claw-v1/issues/` and tell the agent:
 
 ```text
-Work in /Users/leon/school-claw. Read this issue file first and follow its Fresh-agent brief. Do not rely on prior chat context. Follow AGENTS.md, start with tests for AFK issues, and stop if blocked by a referenced draft issue that is not complete.
+Work in /Users/leon/school-claw. Read this issue file first and follow its Fresh-agent brief. Do not rely on prior chat context. Stop if blocked by a referenced draft issue that is not complete.
 ```
 
 Each issue must remain self-contained: working directory, required docs, project summary, capability, non-negotiables, expected handoff result, acceptance criteria, and blockers belong in the issue body.

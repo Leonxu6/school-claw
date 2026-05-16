@@ -1,0 +1,20 @@
+id: "0009"
+title: "Create the one-agent OpenClaw workspace and tool policy"
+issue: "tasks/todo/claw-v1/issues/0009-openclaw-agent-workspace-config.md"
+branch: "issue/0009-openclaw-agent-workspace-config"
+verification_contract: |
+  Use the linked issue as the authoritative behavior and acceptance source.
+  Verify from the downstream-agent point of view before passing.
+scenarios:
+  - name: "issue_acceptance_loop"
+    given: "A checkout of school-claw and the issue brief above."
+    when: "The implementation claims the issue is complete."
+    then:
+      - "Every acceptance criterion in the issue is satisfied."
+      - "The documented user or agent journey works from the real entry point or closest real path."
+      - "Important edge, failure, permission, and regression cases named by the issue are covered."
+evidence_required:
+  - "Behavior output or artifact from the issue journey."
+  - "Supporting command output for relevant checks."
+  - "Notes explaining any unavailable external dependency."
+protected: true
