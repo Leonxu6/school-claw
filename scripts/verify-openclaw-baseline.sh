@@ -53,6 +53,8 @@ require_doc_marker 'before_tool_call'
 require_doc_marker 'group:fs'
 
 required_openclaw_paths=(
+  "src/entry.ts"
+  "node_modules/tsx/dist/esm/index.mjs"
   "src/routing/session-key.ts"
   "src/routing/resolve-route.ts"
   "src/agents/pi-embedded-runner/run.ts"

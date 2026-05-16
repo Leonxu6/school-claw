@@ -22,7 +22,8 @@ import {
 } from "../src/openclaw/claw-agent-config.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
-const openclawCheckoutPath = "/Users/leon/openclaw";
+const openclawCheckoutPath =
+  process.env.OPENCLAW_DIR ?? process.env.OPENCLAW_CHECKOUT ?? "/Users/leon/openclaw";
 const openclawSourceCliEntryPath = path.join(openclawCheckoutPath, "src", "entry.ts");
 const openclawTsxLoaderPath = path.join(
   openclawCheckoutPath,
@@ -33,6 +34,15 @@ const shippedConfigRelativePath = path.join(
   "openclaw",
   "claw-agent.openclaw.json",
 );
+const requireOpenclawCli = process.env.CLAW_PILOT_SMOKE === "1";
+const openclawCliAvailable =
+  existsSync(openclawSourceCliEntryPath) && existsSync(openclawTsxLoaderPath);
+const openclawCliIt = openclawCliAvailable || requireOpenclawCli ? it : it.skip;
+
+function expectOpenClawCliAvailable(): void {
+  expect(existsSync(openclawSourceCliEntryPath)).toBe(true);
+  expect(existsSync(openclawTsxLoaderPath)).toBe(true);
+}
 
 function validateWithPinnedOpenClawSource(configPath: string, cwd: string): string {
   return execFileSync(
@@ -61,6 +71,8 @@ describe("OpenClaw claw-agent workspace config", () => {
     );
 
     expect(config).not.toHaveProperty("openclawRuntime");
+    expect(config.gateway.mode).toBe("local");
+    expect(config.gateway.bind).toBe("auto");
     expect(config.session.dmScope).toBe("per-channel-peer");
     expect(config.agents.list).toHaveLength(1);
     expect(config.agents.defaults).not.toHaveProperty("agentRuntime");
@@ -209,9 +221,10 @@ describe("OpenClaw claw-agent workspace config", () => {
     expect(rawConfig).not.toContain(path.resolve(repoRoot));
   });
 
-  it.skipIf(!existsSync(openclawSourceCliEntryPath) || !existsSync(openclawTsxLoaderPath))(
+  openclawCliIt(
     "fails validation when a relocated checkout is missing its local Scope Bridge plugin",
     () => {
+      expectOpenClawCliAvailable();
       const tempRoot = mkdtempSync(path.join(tmpdir(), "claw-openclaw-relocated-"));
 
       try {
@@ -228,9 +241,10 @@ describe("OpenClaw claw-agent workspace config", () => {
     },
   );
 
-  it.skipIf(!existsSync(openclawSourceCliEntryPath) || !existsSync(openclawTsxLoaderPath))(
+  openclawCliIt(
     "is accepted by the pinned OpenClaw source CLI config validator",
     () => {
+      expectOpenClawCliAvailable();
       const configPath = path.join(repoRoot, shippedConfigRelativePath);
 
       expect(() => {
@@ -239,9 +253,10 @@ describe("OpenClaw claw-agent workspace config", () => {
     },
   );
 
-  it.skipIf(!existsSync(openclawSourceCliEntryPath))(
+  openclawCliIt(
     "loads the Scope Bridge plugin and registers the before_tool_call hook",
     () => {
+      expectOpenClawCliAvailable();
       const pluginIndexPath = path.join(
         repoRoot,
         "integrations",

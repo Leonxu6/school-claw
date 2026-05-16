@@ -22,6 +22,10 @@ export type ClawAgentOpenClawConfig = {
     checkoutPath: string;
     pinnedCommit: string;
   };
+  gateway: {
+    mode: "local";
+    bind: "auto";
+  };
   session: {
     dmScope: "per-channel-peer";
   };
@@ -161,6 +165,11 @@ export function createClawAgentOpenClawConfig(
 ): ClawAgentOpenClawConfig {
   const repoRoot = path.resolve(options.repoRoot);
   const dataRoot = path.resolve(options.dataRoot);
+  const openclawCheckoutPath =
+    options.openclawCheckoutPath ??
+    process.env.OPENCLAW_DIR ??
+    process.env.OPENCLAW_CHECKOUT ??
+    PINNED_OPENCLAW_CHECKOUT_PATH;
   const pathMode = options.pathMode ?? "absolute";
   const fromRepoRoot = (...segments: string[]) =>
     toConfigPath(repoRoot, path.join(repoRoot, ...segments), pathMode);
@@ -168,8 +177,12 @@ export function createClawAgentOpenClawConfig(
 
   return {
     openclawRuntime: {
-      checkoutPath: options.openclawCheckoutPath ?? PINNED_OPENCLAW_CHECKOUT_PATH,
+      checkoutPath: openclawCheckoutPath,
       pinnedCommit: options.pinnedOpenClawCommit ?? PINNED_OPENCLAW_COMMIT,
+    },
+    gateway: {
+      mode: "local",
+      bind: "auto",
     },
     session: {
       dmScope: "per-channel-peer",

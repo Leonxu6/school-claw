@@ -84,7 +84,7 @@ const openclawModule = (relativePath: string) => {
   return pathToFileURL(path.join(input.openclawCheckoutPath, relativePath)).href;
 };
 const { runEmbeddedPiAgent } = (await import(
-  openclawModule("src/agents/pi-embedded-runner.ts")
+  openclawModule("src/agents/pi-embedded-runner/run.ts")
 )) as {
   runEmbeddedPiAgent: RunEmbeddedPiAgent;
 };
@@ -575,12 +575,10 @@ function nextResponseEvents(
           "| 知识点 | 典型错因 |",
           "| --- | --- |",
           "| 分数应用题 | 单位一不稳 |",
-          "| 英语听写 | 形近词混淆 |",
         ].join("\n"),
         sourceFileIds: [
           "classes/class_001/class.md",
           "classes/class_001/students/stu_001/errors/2026-05.md",
-          "classes/class_001/students/stu_002/errors/2026-05.md",
         ],
       });
     }

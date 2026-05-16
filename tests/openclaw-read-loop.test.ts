@@ -28,11 +28,15 @@ const parentASsid = "agent:claw-agent:qqbot:direct:parent-openid-001";
 const parentBSsid = "agent:claw-agent:qqbot:direct:parent-openid-002";
 const disabledParentSsid =
   "agent:claw-agent:qqbot:direct:disabled-parent-openid-001";
+const openclawCheckoutPath =
+  process.env.OPENCLAW_DIR ?? process.env.OPENCLAW_CHECKOUT ?? "/Users/leon/openclaw";
 const openclawQaChannelAvailable =
-  existsSync("/Users/leon/openclaw/extensions/qa-channel/src/inbound.ts") &&
-  existsSync("/Users/leon/openclaw/extensions/qa-channel/api.ts") &&
-  existsSync("/Users/leon/openclaw/extensions/qa-lab/bus-api.ts") &&
-  existsSync("/Users/leon/openclaw/src/agents/pi-bundle-mcp-materialize.ts");
+  existsSync(path.join(openclawCheckoutPath, "extensions/qa-channel/src/inbound.ts")) &&
+  existsSync(path.join(openclawCheckoutPath, "extensions/qa-channel/api.ts")) &&
+  existsSync(path.join(openclawCheckoutPath, "extensions/qa-lab/bus-api.ts")) &&
+  existsSync(
+    path.join(openclawCheckoutPath, "src/agents/pi-bundle-mcp-materialize.ts"),
+  );
 
 describe("one-agent OpenClaw read loop", () => {
   it("defines one claw-agent with scoped CLAW access and no raw native data tools", () => {
@@ -40,7 +44,7 @@ describe("one-agent OpenClaw read loop", () => {
 
     expect(config.session.dmScope).toBe("per-channel-peer");
     expect(config.openclawRuntime).toEqual({
-      checkoutPath: "/Users/leon/openclaw",
+      checkoutPath: openclawCheckoutPath,
       pinnedCommit: "da23f4572da7d59ef97688ad8b61771e5b708733",
     });
     expect(config.agents.list).toHaveLength(1);

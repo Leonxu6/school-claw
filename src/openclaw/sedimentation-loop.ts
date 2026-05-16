@@ -435,7 +435,7 @@ function assertOpenClawPiRuntimeAvailable(openclawCheckoutPath: string): void {
 }
 
 function openClawPiRunnerPath(openclawCheckoutPath: string): string {
-  return path.join(openclawCheckoutPath, "src", "agents", "pi-embedded-runner.ts");
+  return path.join(openclawCheckoutPath, "src", "agents", "pi-embedded-runner", "run.ts");
 }
 
 function nodeWithTsxLoaderCommand(openclawCheckoutPath: string, args: string[]): {

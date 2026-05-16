@@ -11,6 +11,7 @@
     "test:write-audit": "vitest run tests/write-audit.test.ts",
     "test:scope-bridge": "vitest run tests/scope-bridge.test.ts",
     "typecheck": "tsc --noEmit",
+    "pilot:smoke": "bash scripts/pilot-smoke-checks.sh",
     "demo:scope": "tsx scripts/demo-scope.ts",
     "demo:scoped-read": "tsx scripts/demo-scoped-read.ts",
     "demo:artifact": "tsx scripts/demo-artifact.ts",
