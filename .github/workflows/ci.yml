@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - main
       - work/0001-openclaw-source-baseline
   workflow_dispatch:
 
